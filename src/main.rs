@@ -4,6 +4,8 @@
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
+    use egui_extras::install_image_loaders;
+
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let native_options = eframe::NativeOptions {
@@ -20,13 +22,20 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Ok(Box::new(eframe_template::TemplateApp::new(cc)))),
+        Box::new(|cc| {
+            install_image_loaders(&cc.egui_ctx.clone());
+            cc.egui_ctx.set_zoom_factor(0.8);
+            Ok(Box::new(meal_planner::MealPlannerApp::new(cc)))
+        }),
     )
 }
 
 // When compiling to web using trunk:
 #[cfg(target_arch = "wasm32")]
 fn main() {
+    use meal_planner::MealPlannerApp;
+
+    let state = include_bytes!("../state.json");
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
@@ -37,7 +46,12 @@ fn main() {
             .start(
                 "the_canvas_id",
                 web_options,
-                Box::new(|cc| Ok(Box::new(eframe_template::TemplateApp::new(cc)))),
+                Box::new(|cc| {
+                    egui_extras::install_image_loaders(&cc.egui_ctx.clone());
+                    let mut app = meal_planner::MealPlannerApp::new(cc);
+                    app.load_from_bytes(state);
+                    Ok(Box::new(app))
+                }),
             )
             .await;
 

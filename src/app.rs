@@ -1,25 +1,101 @@
+use core::str;
+use std::{
+    collections::HashMap,
+    future::Future,
+    sync::{Arc, Mutex},
+};
+
+use ehttp::Request;
+use log::{debug, error};
+use rfd::FileHandle;
+
+use crate::{
+    models::{AnalysisRequest, AnalysisResponse, Recipe},
+    planner::Planner,
+    recipe_editor::Editor,
+    recipe_viewer::{EditState, RecipeBrowser},
+    util::DEFAULT_PADDING,
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+fn execute<F: std::future::Future<Output = ()> + Send + 'static>(f: F) {
+    // this is stupid... use any executor of your choice instead
+    std::thread::spawn(move || futures::executor::block_on(f));
+}
+#[cfg(target_arch = "wasm32")]
+fn execute<F: std::future::Future<Output = ()> + 'static>(f: F) {
+    wasm_bindgen_futures::spawn_local(f);
+}
+
+#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum Download {
+    #[default]
+    None,
+    InProgress,
+    Done(ehttp::Result<AnalysisResponse>),
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
-    // Example stuff:
-    label: String,
+pub struct MealPlannerApp {
+    #[serde(skip)]
+    api_key: String,
+    #[serde(skip)]
+    app_id: String,
+    #[serde(skip)]
+    pub planner_visible: bool,
+    #[serde(skip)]
+    planner: Planner,
+    #[serde(skip)]
+    pub editor_visible: bool,
+    #[serde(skip)]
+    pub browser_visible: bool,
+    #[serde(skip)]
+    pub shopping_list_visible: bool,
+    #[serde(skip)]
+    pub settings_window_visible: bool,
+    #[serde(skip)]
+    download: Arc<Mutex<Download>>,
+    #[serde(skip)]
+    import_data: Arc<Mutex<(String, Vec<u8>)>>,
+    #[serde(skip)]
+    browser: RecipeBrowser,
 
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
+    recipies: Vec<Recipe>,
+    recipe: Recipe,
+    daily_plan: Vec<Vec<usize>>,
 }
 
-impl Default for TemplateApp {
+impl Default for MealPlannerApp {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            api_key: String::new(),
+            app_id: String::new(),
+            planner_visible: false,
+            planner: Planner::default(),
+            editor_visible: false,
+            browser_visible: false,
+            shopping_list_visible: false,
+            settings_window_visible: false,
+            browser: RecipeBrowser::default(),
+            recipies: vec![],
+            recipe: Recipe::default(),
+            download: Arc::new(Mutex::new(Download::None)),
+            import_data: Arc::new(Mutex::new((String::new(), vec![]))),
+            daily_plan: vec![vec![], vec![], vec![], vec![], vec![], vec![]],
         }
     }
 }
 
-impl TemplateApp {
+impl MealPlannerApp {
+    pub fn load_from_bytes(&mut self, json: &[u8]) {
+        let state: MealPlannerApp = serde_json::from_slice(json).unwrap();
+        self.recipe = state.recipe;
+        self.recipies = state.recipies;
+        self.daily_plan = state.daily_plan;
+    }
+
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -33,9 +109,114 @@ impl TemplateApp {
 
         Default::default()
     }
+
+    fn request(&mut self, ctx: &egui::Context) {
+        let analysis_request = AnalysisRequest {
+            ingr: self.recipe.ingredients_to_vec(),
+        };
+
+        let url = format!(
+            "https://api.edamam.com/api/nutrition-details?app_id={}&app_key={}",
+            self.app_id, self.api_key
+        );
+
+        let ctx = ctx.clone();
+        debug!("request url = {}", url);
+        let download_store = self.download.clone();
+        *download_store.lock().unwrap() = Download::InProgress;
+        ehttp::fetch(
+            Request::json(url, &analysis_request).unwrap(),
+            move |response| {
+                if let Ok(response) = response {
+                    let raw_text = response.text().unwrap();
+                    if response.status == 200 {
+                        let analysis = serde_json::from_str(raw_text).unwrap();
+                        *download_store.lock().unwrap() = Download::Done(Ok(analysis));
+                    } else {
+                        *download_store.lock().unwrap() = Download::Done(Err(raw_text.to_string()));
+                    }
+                    ctx.request_repaint(); // Wake up UI thread
+                } else {
+                    let network_error = response.err().unwrap();
+                    error!("Network Error: {}", network_error);
+                    *download_store.lock().unwrap() = Download::Done(Err(network_error));
+                    ctx.request_repaint(); // Wake up UI thread
+                }
+            },
+        );
+    }
+
+    fn shopping_list(
+        plan: &Vec<Vec<usize>>,
+        recipe_list: &Vec<Recipe>,
+    ) -> HashMap<String, (usize, String)> {
+        let list = HashMap::new();
+        plan.iter().for_each(|day| {
+            for r_id in day {
+                let recipe = recipe_list.get(*r_id).unwrap();
+                for ingr in &recipe.macros.ingredients {
+                    println!("{:?}", ingr);
+                }
+            }
+        });
+
+        list
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn export_data(&mut self) {
+        use std::io::Write;
+        let mut file = std::fs::File::create("state.json").unwrap();
+        let content = serde_json::to_string_pretty(&self).unwrap();
+        file.write_all(content.as_bytes())
+            .expect("Exporting data failed");
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn export_data(&mut self) {
+        //TODO: currently broken because of bug in egui
+        use web_sys::wasm_bindgen::JsCast;
+
+        let content = serde_json::to_string_pretty(&self).unwrap();
+        let win = web_sys::window().unwrap();
+        let doc = win.document().unwrap();
+
+        let link = doc.create_element("a").unwrap();
+        link.set_attribute("href", &format!("data:application/json,{}", content));
+        link.set_attribute("download", "backup.json");
+        let link: web_sys::HtmlAnchorElement =
+            web_sys::HtmlAnchorElement::unchecked_from_js(link.into());
+        link.click();
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn import_data(&mut self, task: impl Future<Output = Option<FileHandle>> + Send + 'static) {
+        let file_path = self.import_data.clone();
+
+        execute(async move {
+            let file = task.await;
+            if let Some(file) = file {
+                let mut file_path = file_path.lock().unwrap();
+                file_path.0 = file.path().to_str().unwrap().to_string();
+            }
+        });
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn import_data(&mut self, task: impl Future<Output = Option<FileHandle>> + 'static) {
+        let file_path = self.import_data.clone();
+
+        execute(async move {
+            let file = task.await;
+            if let Some(file) = file {
+                let file_bytes = file.read().await;
+                file_path.lock().unwrap().1 = file_bytes;
+            }
+        });
+    }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for MealPlannerApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
@@ -43,12 +224,61 @@ impl eframe::App for TemplateApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        {
+            // process any incoming download for the currently editing recipe
+            let download = self.download.lock().unwrap();
+
+            match download.clone() {
+                Download::None => {}
+                Download::InProgress => {}
+                Download::Done(result) => {
+                    if let Ok(analysis) = result {
+                        self.recipe.macros = analysis;
+                    }
+                }
+            };
+        }
+
+        {
+            if let Ok(mut lock) = self.import_data.clone().try_lock() {
+                if !lock.0.is_empty() {
+                    let content = std::fs::read_to_string(&lock.0).expect("Unable to read");
+                    self.load_from_bytes(content.as_bytes());
+                    lock.0 = String::new();
+                }
+
+                if lock.1.len() != 0 {
+                    self.load_from_bytes(lock.1.as_slice());
+                    lock.1 = vec![];
+                }
+            }
+        }
+
+        {
+            // save our recipe if we closed the editor and it's been given a title
+            if self.editor_visible == false && self.recipe.title.is_empty() == false {
+                if let EditState::EDITING(recipe_idx) = self.browser.edit_recipe_idx {
+                    self.recipies[recipe_idx] = self.recipe.clone();
+                } else {
+                    self.recipies.push(self.recipe.clone());
+                }
+                self.recipe = Recipe::default();
+                self.download = Arc::new(Mutex::new(Download::None));
+                self.browser.edit_recipe_idx = EditState::EMPTY;
+            }
+        }
+
+        {
+            if let EditState::DELETE_RECIPE_AT_INDEX(idx) = self.browser.edit_recipe_idx {
+                self.recipies.remove(idx);
+                self.browser.edit_recipe_idx = EditState::EMPTY;
+            }
+        }
+
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-
+        egui::TopBottomPanel::top("main_top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
                 let is_web = cfg!(target_arch = "wasm32");
@@ -61,30 +291,128 @@ impl eframe::App for TemplateApp {
                     ui.add_space(16.0);
                 }
 
+                if ui.button("Planner").clicked() {
+                    self.planner_visible = true;
+                }
+
+                if ui.button("New Recipe").clicked() {
+                    self.editor_visible = true;
+                }
+
+                if ui.button("Recipe Browser").clicked() {
+                    self.browser_visible = true;
+                }
+
+                if ui.button("Import Data").clicked() {
+                    let task = rfd::AsyncFileDialog::new().pick_file();
+                    self.import_data(task);
+                }
+
+                #[cfg(not(target_arch = "wasm32"))]
+                if ui.button("Export Data").clicked() {
+                    self.export_data();
+                }
+
+                if ui.button("Shopping List").clicked() {
+                    self.shopping_list_visible = true;
+                }
+
+                if ui.button("Settings").clicked() {
+                    self.settings_window_visible = true;
+                }
+
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
+            let mut show_welcome_screen = self.api_key.is_empty() || self.app_id.is_empty();
+            egui::Window::new("Welcome Screen")
+                .open(&mut show_welcome_screen)
+                .min_height(400.)
+                .max_height(650.)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    ui.heading("You haven't configured APP_ID and API_KEY for Edamam service");
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.horizontal(|ui| {
+                        ui.label("Go to ");
+                        if ui.link("https://www.edamam.com ").clicked() {
+                            // OpenUrl::new_tab("https://www.edamam.com");
+                        };
+                        ui.label("and sign up for a free account.");
+                    });
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.label("Create a new app for the Nutrition Analysis API. Use the API_KEY and APP_ID in Settings Window.");
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.label("You can use the Planner and Browse Recipe features without an Edamam account.");
+                });
 
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
-            });
+            if let EditState::PENDING(recipe_idx) = self.browser.edit_recipe_idx {
+                self.recipe = self.recipies.get(recipe_idx).unwrap().clone();
+                self.browser.edit_recipe_idx = EditState::EDITING(recipe_idx);
+                self.editor_visible = true;
+            }
+            egui::Window::new("Planner")
+                .open(&mut self.planner_visible)
+                .min_height(400.)
+                .max_height(650.)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
+                });
 
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
+            let response = egui::Window::new("Recipe Editor")
+                .open(&mut self.editor_visible)
+                .resizable(true)
+                .collapsible(false)
+                .default_height(600.)
+                .show(&ctx.clone(), |ui| Editor::new().ui(ui, &mut self.recipe));
+            if let Some(inner) = response {
+                if let Some(response) = inner.inner {
+                    if response.lost_focus() {
+                        self.request(ctx);
+                    }
+                }
             }
 
-            ui.separator();
+            egui::Window::new("Recipe Browser")
+                .open(&mut self.browser_visible)
+                .min_height(300.)
+                .resizable(true)
+                .show(&ctx.clone(), |ui| {
+                    self.browser.show(ui, &self.recipies);
+                });
 
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/main/",
-                "Source code."
-            ));
+            egui::Window::new("Shopping List")
+                .open(&mut self.shopping_list_visible)
+                .min_height(300.)
+                .resizable(true)
+                .show(&ctx.clone(), |ui| {
+                    if ui.button("Shopping List").clicked() {
+                        let shop_list =
+                            MealPlannerApp::shopping_list(&self.daily_plan, &self.recipies);
+                        println!("{:?}", shop_list);
+                    };
+                });
+
+            egui::Window::new("Settings")
+                .open(&mut self.settings_window_visible)
+                .min_height(300.)
+                .resizable(true)
+                .show(&ctx.clone(), |ui| {
+                    ui.group(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Edamam API Key");
+                            ui.text_edit_singleline(&mut self.api_key);
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("Edamam APP ID");
+                            ui.text_edit_singleline(&mut self.app_id);
+                        });
+                    });
+                });
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);

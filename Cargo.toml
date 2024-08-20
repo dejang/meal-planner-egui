@@ -1,27 +1,30 @@
 [package]
-name = "eframe_template"
+name = "meal_planner"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+authors = ["Dejan Gitin <dejangitin@gmail.com>"]
 edition = "2021"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
-rust-version = "1.76"
 
 [package.metadata.docs.rs]
 all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
 [dependencies]
-egui = "0.28"
-eframe = { version = "0.28", default-features = false, features = [
-    "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
-    "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
-] }
+egui = { version = "0.28.1", features = ["log"] }
+eframe = { version = "0.28.1", default-features = false, features = ["accesskit", "default_fonts", "glow", "persistence"] }
 log = "0.4"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12.5", features = ["json"] }
+serde_json = "1.0.125"
+egui_extras = { version = "0.28.1", features = ["image", "all_loaders"] }
+pollster = "0.3.0"
+ehttp = { version = "0.5.0", features = ["json", "native-async"] }
+image = { version = "0.25.2", features = ["jpeg", "png", "webp"] }
+uuid = { version = "1.10.0", features = ["js", "v4"] }
+rfd = { version = "0.14.1", features = ["file-handle-inner"] }
+futures = "0.3.30"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -33,7 +36,7 @@ wasm-bindgen-futures = "0.4"
 
 # to access the DOM (to hide the loading text)
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
-version = "0.3.4"
+version = "=0.3.68"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
