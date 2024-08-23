@@ -10,7 +10,7 @@ use crate::{
     util::DEFAULT_PADDING,
 };
 
-#[derive(serde::Serialize, serde::Deserialize, Default)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
 pub enum EditState<T> {
     PENDING(T),
     EDITING(T),
@@ -19,7 +19,7 @@ pub enum EditState<T> {
     EMPTY,
 }
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct RecipeBrowser {
     active_recipe: usize,
     analysis_response_view: AnalysisResponseView,

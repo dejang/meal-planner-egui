@@ -14,7 +14,7 @@ pub struct Location {
     pub recipe_index: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Planner {
     search_term: String,
     collapsible_nutrients: Vec<AnalysisResponseView>,

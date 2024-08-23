@@ -36,12 +36,10 @@ pub enum Download {
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct MealPlannerApp {
-    #[serde(skip)]
     api_key: String,
-    #[serde(skip)]
     app_id: String,
     #[serde(skip)]
     pub planner_visible: bool,
@@ -62,9 +60,9 @@ pub struct MealPlannerApp {
     #[serde(skip)]
     browser: RecipeBrowser,
 
-    recipies: Vec<Recipe>,
-    recipe: Recipe,
-    daily_plan: Vec<Vec<usize>>,
+    pub recipies: Vec<Recipe>,
+    pub recipe: Recipe,
+    pub daily_plan: Vec<Vec<usize>>,
 }
 
 impl Default for MealPlannerApp {
@@ -96,6 +94,34 @@ impl MealPlannerApp {
         self.daily_plan = state.daily_plan;
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn is_daily_plan_empty(&self) -> bool {
+        let mut is_empty = 0;
+        for day in &self.daily_plan {
+            is_empty = is_empty >> day.len();
+        }
+
+        is_empty == 0
+    }
+
+    #[cfg(target_arch = "Wasm32")]
+    pub fn same_recipe_collection(&self, incoming: &Vec<Recipe>) -> bool {
+        for r in self.recipies {
+            let mut not_found = true;
+            for ir in incoming {
+                if r.title == ir.title {
+                    not_found = false;
+                    break;
+                }
+            }
+            if not_found {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -105,6 +131,26 @@ impl MealPlannerApp {
         // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        }
+
+        Default::default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    /// Called once before the first frame.
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // This is also where you can customize the look and feel of egui using
+        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+        let default_state = serde_json::from_slice(include_bytes!("../state.json")).unwrap();
+        // Load previous app state (if any).
+        // Note that you must enable the `persistence` feature for this to work.
+        if let Some(storage) = cc.storage {
+            let previous_state: MealPlannerApp =
+                eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            if previous_state.is_daily_plan_empty() && previous_state.recipies.len() == 0 {
+                return default_state;
+            }
+            return previous_state;
         }
 
         Default::default()
@@ -167,8 +213,8 @@ impl MealPlannerApp {
     fn export_data(&mut self) {
         use std::io::Write;
         let mut file = std::fs::File::create("state.json").unwrap();
-        let content = serde_json::to_string_pretty(&self).unwrap();
-        file.write_all(content.as_bytes())
+        let content = serde_json::to_string(&self).unwrap();
+        file.write_all(base64::encode(content).as_bytes())
             .expect("Exporting data failed");
     }
 
@@ -182,7 +228,7 @@ impl MealPlannerApp {
         let doc = win.document().unwrap();
 
         let link = doc.create_element("a").unwrap();
-        link.set_attribute("href", &format!("data:application/json,{}", content));
+        link.set_attribute("href", &format!("data:text/plain,{}", base64::encode(content)));
         link.set_attribute("download", "backup.json");
         let link: web_sys::HtmlAnchorElement =
             web_sys::HtmlAnchorElement::unchecked_from_js(link.into());
@@ -243,12 +289,12 @@ impl eframe::App for MealPlannerApp {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
                 if !lock.0.is_empty() {
                     let content = std::fs::read_to_string(&lock.0).expect("Unable to read");
-                    self.load_from_bytes(content.as_bytes());
+                    self.load_from_bytes(base64::decode(content).unwrap().as_slice());
                     lock.0 = String::new();
                 }
 
                 if lock.1.len() != 0 {
-                    self.load_from_bytes(lock.1.as_slice());
+                    self.load_from_bytes(base64::decode(&lock.1).unwrap().as_slice());
                     lock.1 = vec![];
                 }
             }
@@ -308,7 +354,7 @@ impl eframe::App for MealPlannerApp {
                     self.import_data(task);
                 }
 
-                #[cfg(not(target_arch = "wasm32"))]
+                // #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export Data").clicked() {
                     self.export_data();
                 }

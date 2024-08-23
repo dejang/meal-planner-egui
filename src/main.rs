@@ -33,10 +33,9 @@ fn main() -> eframe::Result {
 // When compiling to web using trunk:
 #[cfg(target_arch = "wasm32")]
 fn main() {
-    use meal_planner::MealPlannerApp;
-
-    let state = include_bytes!("../state.json");
     // Redirect `log` message to `console.log` and friends:
+
+    use meal_planner::MealPlannerApp;
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
     let web_options = eframe::WebOptions::default();
@@ -48,9 +47,7 @@ fn main() {
                 web_options,
                 Box::new(|cc| {
                     egui_extras::install_image_loaders(&cc.egui_ctx.clone());
-                    let mut app = meal_planner::MealPlannerApp::new(cc);
-                    app.load_from_bytes(state);
-                    Ok(Box::new(app))
+                    Ok(Box::new(MealPlannerApp::new(cc)))
                 }),
             )
             .await;

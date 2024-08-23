@@ -2247,6 +2247,7 @@ dependencies = [
 name = "meal_planner"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "eframe",
  "egui",
  "egui_extras",
