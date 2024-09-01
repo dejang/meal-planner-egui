@@ -1,13 +1,11 @@
-use std::{default, usize};
+use std::usize;
 
-use egui::{vec2, Id, RichText, ScrollArea, Sense};
-use egui_extras::{Column, TableBuilder};
-use uuid::Uuid;
+use egui::{Id, ScrollArea};
 
 use crate::{
     models::{AnalysisResponseView, Recipe},
     planner::Location,
-    util::DEFAULT_PADDING,
+    util::{percentage, DEFAULT_PADDING},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
@@ -28,8 +26,10 @@ pub struct RecipeBrowser {
 
 impl RecipeBrowser {
     pub fn show(&mut self, ui: &mut egui::Ui, recipes: &Vec<Recipe>) {
+        let max_width = ui.max_rect().width();
         egui::SidePanel::left("recipe list")
             .show_separator_line(false)
+            .default_width(percentage(max_width, 25))
             .resizable(false)
             .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui| {
@@ -78,11 +78,14 @@ impl RecipeBrowser {
 
         egui::SidePanel::right("view recipe")
             .resizable(true)
+            .default_width(percentage(max_width, 75))
             .show_inside(ui, |ui| {
+                let max_width = ui.max_rect().width();
+                let max_height = ui.max_rect().height();
+
                 egui::SidePanel::left("view_left_panel")
                     .resizable(true)
-                    .default_width(150.0)
-                    .width_range(80.0..=200.0)
+                    .default_width(percentage(max_width, 25))
                     .show_inside(ui, |ui| {
                         ui.vertical_centered(|ui| {
                             ui.heading("Ingredients");
@@ -93,9 +96,8 @@ impl RecipeBrowser {
                     });
 
                 egui::SidePanel::right("view_right_panel")
-                    // .resizable(true)
-                    .default_width(220.0)
-                    // .width_range(80.0..=200.0)
+                    .resizable(true)
+                    .default_width(percentage(max_width, 25))
                     .show_inside(ui, |ui| {
                         ui.vertical_centered(|ui| {
                             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -111,7 +113,7 @@ impl RecipeBrowser {
 
                 egui::TopBottomPanel::top("view_top_panel")
                     .resizable(true)
-                    .min_height(32.0)
+                    .default_height(percentage(max_height, 50))
                     .show_inside(ui, |ui| {
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             ui.vertical_centered(|ui| {

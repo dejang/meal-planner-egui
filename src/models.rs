@@ -1,8 +1,7 @@
-use std::{collections::HashMap, default};
+use std::collections::HashMap;
 
-use egui::{CollapsingHeader, Id, Layout, RichText, ScrollArea};
+use egui::{Layout, RichText};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::util::DEFAULT_PADDING;
 

@@ -1,5 +1,4 @@
 use egui::*;
-use log::info;
 
 use crate::{
     models::{AnalysisResponseView, Recipe},
@@ -61,7 +60,7 @@ impl Planner {
                         let frame = Frame::default().inner_margin(4.0);
 
                         let (_, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(frame, |ui| {
-                            ui.set_min_size(vec2(64.0, 100.0));
+                            ui.set_min_size(vec2(ui.available_width(), 100.0));
                             for (row_idx, item) in column.iter().enumerate() {
                                 let item_id = Id::new(("my_drag_and_drop_demo", col_idx, row_idx));
                                 let item_location = Location {

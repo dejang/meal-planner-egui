@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use egui::{Button, Pos2};
 use ehttp::Request;
 use log::{debug, error};
 use rfd::FileHandle;
@@ -14,7 +15,7 @@ use crate::{
     planner::Planner,
     recipe_editor::Editor,
     recipe_viewer::{EditState, RecipeBrowser},
-    util::DEFAULT_PADDING,
+    util::{percentage, DEFAULT_PADDING},
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -70,10 +71,10 @@ impl Default for MealPlannerApp {
         Self {
             api_key: String::new(),
             app_id: String::new(),
-            planner_visible: false,
+            planner_visible: true,
             planner: Planner::default(),
             editor_visible: false,
-            browser_visible: false,
+            browser_visible: true,
             shopping_list_visible: false,
             settings_window_visible: false,
             browser: RecipeBrowser::default(),
@@ -229,7 +230,10 @@ impl MealPlannerApp {
         let doc = win.document().unwrap();
 
         let link = doc.create_element("a").unwrap();
-        link.set_attribute("href", &format!("data:text/plain,{}", base64::encode(content)));
+        link.set_attribute(
+            "href",
+            &format!("data:text/plain,{}", base64::encode(content)),
+        );
         link.set_attribute("download", "backup.json");
         let link: web_sys::HtmlAnchorElement =
             web_sys::HtmlAnchorElement::unchecked_from_js(link.into());
@@ -338,16 +342,18 @@ impl eframe::App for MealPlannerApp {
                     ui.add_space(16.0);
                 }
 
-                if ui.button("Planner").clicked() {
-                    self.planner_visible = true;
+                let planner_btn = Button::new("Planner").selected(self.planner_visible);
+                if ui.add(planner_btn).clicked() {
+                    self.planner_visible = !self.planner_visible;
                 }
 
                 if ui.button("New Recipe").clicked() {
                     self.editor_visible = true;
                 }
 
-                if ui.button("Recipe Browser").clicked() {
-                    self.browser_visible = true;
+                let recipe_browser_btn = Button::new("Recipe Browser").selected(self.browser_visible);
+                if ui.add(recipe_browser_btn).clicked() {
+                    self.browser_visible = !self.browser_visible;
                 }
 
                 if ui.button("Import Data").clicked() {
@@ -373,28 +379,9 @@ impl eframe::App for MealPlannerApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let mut show_welcome_screen = self.api_key.is_empty() || self.app_id.is_empty();
-            egui::Window::new("Welcome Screen")
-                .open(&mut show_welcome_screen)
-                .min_height(400.)
-                .max_height(650.)
-                .resizable(true)
-                .show(ctx, |ui| {
-                    ui.heading("You haven't configured APP_ID and API_KEY for Edamam service");
-                    ui.add_space(DEFAULT_PADDING);
-                    ui.horizontal(|ui| {
-                        ui.label("Go to ");
-                        if ui.link("https://www.edamam.com ").clicked() {
-                            // OpenUrl::new_tab("https://www.edamam.com");
-                        };
-                        ui.label("and sign up for a free account.");
-                    });
-                    ui.add_space(DEFAULT_PADDING);
-                    ui.label("Create a new app for the Nutrition Analysis API. Use the API_KEY and APP_ID in Settings Window.");
-                    ui.add_space(DEFAULT_PADDING);
-                    ui.label("You can use the Planner and Browse Recipe features without an Edamam account.");
-                });
-
+            let max_width = ui.max_rect().width();
+            let max_height = ui.max_rect().height();
+            
             if let EditState::PENDING(recipe_idx) = self.browser.edit_recipe_idx {
                 self.recipe = self.recipies.get(recipe_idx).unwrap().clone();
                 self.browser.edit_recipe_idx = EditState::EDITING(recipe_idx);
@@ -402,8 +389,9 @@ impl eframe::App for MealPlannerApp {
             }
             egui::Window::new("Planner")
                 .open(&mut self.planner_visible)
-                .min_height(400.)
-                .max_height(650.)
+                .default_height(percentage(max_height, 60))
+                .default_width(percentage(max_width, 95))
+                .default_pos(Pos2{ x: 0., y: 30. })
                 .resizable(true)
                 .show(ctx, |ui| {
                     self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
@@ -414,6 +402,7 @@ impl eframe::App for MealPlannerApp {
                 .resizable(true)
                 .collapsible(false)
                 .default_height(600.)
+                .default_width(percentage(ui.max_rect().width(), 80))
                 .show(&ctx.clone(), |ui| Editor::new().ui(ui, &mut self.recipe));
             if let Some(inner) = response {
                 if let Some(response) = inner.inner {
@@ -425,7 +414,9 @@ impl eframe::App for MealPlannerApp {
 
             egui::Window::new("Recipe Browser")
                 .open(&mut self.browser_visible)
-                .min_height(300.)
+                .default_width(max_width - DEFAULT_PADDING)
+                .default_height(percentage(max_height, 30))
+                .default_pos(Pos2 { x: 0., y: percentage(max_height, 60) + 30. })
                 .resizable(true)
                 .show(&ctx.clone(), |ui| {
                     self.browser.show(ui, &self.recipies);
@@ -460,6 +451,29 @@ impl eframe::App for MealPlannerApp {
                         });
                     });
                 });
+            
+            let mut show_welcome_screen = self.api_key.is_empty() || self.app_id.is_empty();
+            egui::Window::new("Welcome Screen")
+                .open(&mut show_welcome_screen)
+                .min_height(400.)
+                .max_height(650.)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    ui.heading("You haven't configured APP_ID and API_KEY for Edamam service");
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.horizontal(|ui| {
+                        ui.label("Go to ");
+                        if ui.link("https://www.edamam.com ").clicked() {
+                            // OpenUrl::new_tab("https://www.edamam.com");
+                        };
+                        ui.label("and sign up for a free account.");
+                    });
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.label("Create a new app for the Nutrition Analysis API. Use the API_KEY and APP_ID in Settings Window.");
+                    ui.add_space(DEFAULT_PADDING);
+                    ui.label("You can use the Planner and Browse Recipe features without an Edamam account.");
+                });
+
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);

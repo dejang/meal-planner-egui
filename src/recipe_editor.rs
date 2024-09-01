@@ -1,30 +1,21 @@
 use egui::{vec2, DragValue, Response, RichText, Sense};
-use uuid::Uuid;
 
-use crate::{models::Recipe, util::DEFAULT_PADDING};
+use crate::{models::Recipe, util::{percentage, DEFAULT_PADDING}};
 
-pub struct Editor {
-    id: String,
-}
-
+pub struct Editor;
 impl Editor {
     pub fn new() -> Self {
-        let id = Uuid::new_v4().to_string();
-        Self { id }
-    }
-
-    fn panel_name(&self, name: &str) -> String {
-        format!("{}_{}", self.id, name)
+       Self {}
     }
 
     pub fn ui(&self, ui: &mut egui::Ui, recipe: &mut Recipe) -> Response {
         let mut response: Response = ui.interact(ui.clip_rect(), ui.id(), Sense::hover());
-        // Note that the order we add the panels is very important!
-        //sidepanel
+       let max_width = ui.max_rect().width();
+        let max_height = ui.max_rect().height();
+        
         egui::SidePanel::left("edit_left_panel")
                 .resizable(true)
-                .default_width(150.0)
-                .width_range(80.0..=400.0)
+                .default_width(percentage(max_width, 25))            
                 .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui|  {
                     ui.heading("Ingredient list");
@@ -34,16 +25,14 @@ impl Editor {
             });
 
         egui::SidePanel::right("edit_right_panel")
-            // .resizable(true)
-            .default_width(220.0)
-            // .width_range(80.0..=200.0)
-            .show_inside(ui, |ui| {
+           .default_width(percentage(max_width, 25))
+           .show_inside(ui, |ui| {
                 recipe.macros.ui(ui, recipe.servings, "Amount per serving");
             });
 
         egui::TopBottomPanel::top("edit_top_panel")
             .resizable(true)
-            .min_height(32.0)
+            .default_height(percentage(max_height, 50))
             .show_inside(ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical_centered(|ui| {
