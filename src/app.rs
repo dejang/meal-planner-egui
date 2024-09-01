@@ -169,7 +169,6 @@ impl MealPlannerApp {
         );
 
         let ctx = ctx.clone();
-        debug!("request url = {}", url);
         let download_store = self.download.clone();
         *download_store.lock().unwrap() = Download::InProgress;
         ehttp::fetch(

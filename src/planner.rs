@@ -1,6 +1,7 @@
 use egui::*;
 
 use crate::{
+    icons::{self},
     models::{AnalysisResponseView, Recipe},
     util::DEFAULT_PADDING,
 };
@@ -52,8 +53,18 @@ impl Planner {
         ui.columns(plan.len(), |uis| {
             for (col_idx, column) in plan.clone().into_iter().enumerate() {
                 let ui = &mut uis[col_idx];
-                ui.heading(format!("Day {}", col_idx));
-
+                ui.horizontal(|ui| {
+                    ui.heading(format!("Day {}", col_idx + 1));
+                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                        let clear_btn = Button::image(Image::from_bytes("delete", icons::CLEAR));
+                        let tooltip_ui = |ui: &mut Ui| {
+                            ui.label("Clear meals");
+                        };
+                        if ui.add(clear_btn).on_hover_ui(tooltip_ui).clicked() {
+                            plan.get_mut(col_idx).unwrap().clear();
+                        }
+                    });
+                });
                 ScrollArea::new([false, true])
                     .id_source(format!("scroll_area{}", col_idx))
                     .show(ui, |ui| {
