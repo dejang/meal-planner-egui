@@ -7,7 +7,7 @@ use std::{
 
 use egui::{Button, Pos2};
 use ehttp::Request;
-use log::{debug, error};
+use log::error;
 use rfd::FileHandle;
 
 use crate::{

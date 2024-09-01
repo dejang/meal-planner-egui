@@ -22,6 +22,7 @@ pub struct RecipeBrowser {
     active_recipe: usize,
     analysis_response_view: AnalysisResponseView,
     pub edit_recipe_idx: EditState<usize>,
+    recipe_name_search: String,
 }
 
 impl RecipeBrowser {
@@ -34,9 +35,23 @@ impl RecipeBrowser {
             .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.heading("Recipe List");
+                    ui.vertical_centered_justified(|ui| {
+                        ui.text_edit_singleline(&mut self.recipe_name_search);
+                    });
+                    ui.add_space(DEFAULT_PADDING);
                 });
+
+                let recipies_in_view = recipes
+                    .iter()
+                    .enumerate()
+                    .filter(|(_i, r)| {
+                        r.title
+                            .to_lowercase()
+                            .contains(&self.recipe_name_search.to_lowercase())
+                    })
+                    .collect::<Vec<(usize, &Recipe)>>();
                 ScrollArea::vertical().show(ui, |ui| {
-                    for (i, recipe) in recipes.iter().enumerate() {
+                    for (i, recipe) in recipies_in_view {
                         ui.horizontal(|ui| {
                             if ui.button("View").clicked() {
                                 self.active_recipe = i;
