@@ -1,8 +1,9 @@
 use std::usize;
 
-use egui::{Id, ScrollArea};
+use egui::{Button, Id, Image, ScrollArea};
 
 use crate::{
+    icons,
     models::{AnalysisResponseView, Recipe},
     planner::Location,
     util::{percentage, DEFAULT_PADDING},
@@ -53,15 +54,19 @@ impl RecipeBrowser {
                 ScrollArea::vertical().show(ui, |ui| {
                     for (i, recipe) in recipies_in_view {
                         ui.horizontal(|ui| {
-                            if ui.button("View").clicked() {
+                            let view_btn = Button::image(Image::from_bytes("view", icons::VIEW));
+                            if ui.add(view_btn).clicked() {
                                 self.active_recipe = i;
                             }
 
-                            if ui.button("Edit").clicked() {
+                            let edit_btn = Button::image(Image::from_bytes("edit", icons::EDIT));
+                            if ui.add(edit_btn).clicked() {
                                 self.edit_recipe_idx = EditState::PENDING(i);
                             }
 
-                            if ui.button("Delete").clicked() {
+                            let delete_btn =
+                                Button::image(Image::from_bytes("trash", icons::DELETE));
+                            if ui.add(delete_btn).clicked() {
                                 self.edit_recipe_idx = EditState::DELETE_RECIPE_AT_INDEX(i);
                             }
 
