@@ -6,5 +6,6 @@ mod models;
 mod planner;
 mod recipe_editor;
 mod recipe_viewer;
+mod shopping_list;
 mod util;
 pub use app::MealPlannerApp;

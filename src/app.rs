@@ -7,15 +7,11 @@ use std::{
 
 use egui::{Button, Pos2};
 use ehttp::Request;
-use log::error;
+use log::{error, info};
 use rfd::FileHandle;
 
 use crate::{
-    models::{AnalysisRequest, AnalysisResponse, Recipe},
-    planner::Planner,
-    recipe_editor::Editor,
-    recipe_viewer::{EditState, RecipeBrowser},
-    util::{percentage, DEFAULT_PADDING},
+    models::{AnalysisRequest, AnalysisResponse, Recipe}, planner::Planner, recipe_editor::Editor, recipe_viewer::{EditState, RecipeBrowser}, shopping_list::ShoppingList, util::{percentage, DEFAULT_PADDING}
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -60,6 +56,8 @@ pub struct MealPlannerApp {
     import_data: Arc<Mutex<(String, Vec<u8>)>>,
     #[serde(skip)]
     browser: RecipeBrowser,
+    #[serde(skip)]
+    shopping_list: ShoppingList,
 
     pub recipies: Vec<Recipe>,
     pub recipe: Recipe,
@@ -78,6 +76,7 @@ impl Default for MealPlannerApp {
             shopping_list_visible: false,
             settings_window_visible: false,
             browser: RecipeBrowser::default(),
+            shopping_list: ShoppingList::default(),
             recipies: vec![],
             recipe: Recipe::default(),
             download: Arc::new(Mutex::new(Download::None)),
@@ -196,14 +195,28 @@ impl MealPlannerApp {
     fn shopping_list(
         plan: &Vec<Vec<usize>>,
         recipe_list: &Vec<Recipe>,
-    ) -> HashMap<String, (usize, String)> {
-        let list = HashMap::new();
+    ) -> HashMap<String, (String, f32)> {
+        let mut list = HashMap::new();
         plan.iter().for_each(|day| {
             for r_id in day {
                 let recipe = recipe_list.get(*r_id).unwrap();
                 for ingr in &recipe.macros.ingredients {
-                    println!("{:?}", ingr);
-                }
+                    if ingr.parsed.is_none() {
+                        continue;
+                    }
+                    let model = ingr.parsed.as_ref().unwrap();
+
+                    if model.len() == 0 {
+                        continue;
+                    }
+                    
+                    let model = model.get(0).unwrap();
+                    if !list.contains_key(&model.foodId) {
+                        list.insert(model.foodId.clone(), (model.food.clone(), 0.0));
+                    }
+                    let value = list.get_mut(&model.foodId).unwrap();
+                    value.1 = value.1 + (model.weight / recipe.servings as f32);
+               }
             }
         });
 
@@ -426,7 +439,10 @@ impl eframe::App for MealPlannerApp {
                 .min_height(300.)
                 .resizable(true)
                 .show(&ctx.clone(), |ui| {
+                    self.shopping_list.show(ui, &self.daily_plan, &self.recipies);
                     if ui.button("Shopping List").clicked() {
+                        let recipe = self.recipies.get(0).unwrap();
+                        info!("{}", serde_json::to_string_pretty(&MealPlannerApp::shopping_list(&self.daily_plan, &self.recipies)).unwrap());
                         let shop_list =
                             MealPlannerApp::shopping_list(&self.daily_plan, &self.recipies);
                         println!("{:?}", shop_list);
