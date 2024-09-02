@@ -13,7 +13,7 @@ use crate::{
 pub enum EditState<T> {
     PENDING(T),
     EDITING(T),
-    DELETE_RECIPE_AT_INDEX(T),
+    DeleteRecipeAtIndex(T),
     #[default]
     EMPTY,
 }
@@ -67,7 +67,7 @@ impl RecipeBrowser {
                             let delete_btn =
                                 Button::image(Image::from_bytes("trash", icons::DELETE));
                             if ui.add(delete_btn).clicked() {
-                                self.edit_recipe_idx = EditState::DELETE_RECIPE_AT_INDEX(i);
+                                self.edit_recipe_idx = EditState::DeleteRecipeAtIndex(i);
                             }
 
                             ui.add_space(DEFAULT_PADDING);

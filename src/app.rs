@@ -1,13 +1,12 @@
 use core::str;
 use std::{
-    collections::HashMap,
     future::Future,
     sync::{Arc, Mutex},
 };
 
 use egui::{Button, Pos2};
 use ehttp::Request;
-use log::{error, info};
+use log::error;
 use rfd::FileHandle;
 
 use crate::{
@@ -192,37 +191,6 @@ impl MealPlannerApp {
         );
     }
 
-    fn shopping_list(
-        plan: &Vec<Vec<usize>>,
-        recipe_list: &Vec<Recipe>,
-    ) -> HashMap<String, (String, f32)> {
-        let mut list = HashMap::new();
-        plan.iter().for_each(|day| {
-            for r_id in day {
-                let recipe = recipe_list.get(*r_id).unwrap();
-                for ingr in &recipe.macros.ingredients {
-                    if ingr.parsed.is_none() {
-                        continue;
-                    }
-                    let model = ingr.parsed.as_ref().unwrap();
-
-                    if model.len() == 0 {
-                        continue;
-                    }
-                    
-                    let model = model.get(0).unwrap();
-                    if !list.contains_key(&model.foodId) {
-                        list.insert(model.foodId.clone(), (model.food.clone(), 0.0));
-                    }
-                    let value = list.get_mut(&model.foodId).unwrap();
-                    value.1 = value.1 + (model.weight / recipe.servings as f32);
-               }
-            }
-        });
-
-        list
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     fn export_data(&mut self) {
         use std::io::Write;
@@ -242,11 +210,11 @@ impl MealPlannerApp {
         let doc = win.document().unwrap();
 
         let link = doc.create_element("a").unwrap();
-        link.set_attribute(
+        let _ = link.set_attribute(
             "href",
             &format!("data:text/plain,{}", base64::encode(content)),
         );
-        link.set_attribute("download", "backup.json");
+        let _ = link.set_attribute("download", "backup.json");
         let link: web_sys::HtmlAnchorElement =
             web_sys::HtmlAnchorElement::unchecked_from_js(link.into());
         link.click();
@@ -332,7 +300,7 @@ impl eframe::App for MealPlannerApp {
         }
 
         {
-            if let EditState::DELETE_RECIPE_AT_INDEX(idx) = self.browser.edit_recipe_idx {
+            if let EditState::DeleteRecipeAtIndex(idx) = self.browser.edit_recipe_idx {
                 self.recipies.remove(idx);
                 self.browser.edit_recipe_idx = EditState::EMPTY;
             }
@@ -440,14 +408,7 @@ impl eframe::App for MealPlannerApp {
                 .resizable(true)
                 .show(&ctx.clone(), |ui| {
                     self.shopping_list.show(ui, &self.daily_plan, &self.recipies);
-                    if ui.button("Shopping List").clicked() {
-                        let recipe = self.recipies.get(0).unwrap();
-                        info!("{}", serde_json::to_string_pretty(&MealPlannerApp::shopping_list(&self.daily_plan, &self.recipies)).unwrap());
-                        let shop_list =
-                            MealPlannerApp::shopping_list(&self.daily_plan, &self.recipies);
-                        println!("{:?}", shop_list);
-                    };
-                });
+               });
 
             egui::Window::new("Settings")
                 .open(&mut self.settings_window_visible)

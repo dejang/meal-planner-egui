@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use egui_extras::{Column, TableBuilder};
 
-use crate::{models::Recipe, recipe_editor};
+use crate::models::Recipe;
 
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ShoppingList {}
