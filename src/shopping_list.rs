@@ -8,11 +8,7 @@ use crate::models::Recipe;
 pub struct ShoppingList {}
 
 impl ShoppingList {
-    fn shopping_list(
-        &self,
-        plan: &Vec<Vec<usize>>,
-        recipe_list: &Vec<Recipe>,
-    ) -> Vec<(String, f32)> {
+    fn shopping_list(&self, plan: &[Vec<usize>], recipe_list: &[Recipe]) -> Vec<(String, f32)> {
         let mut list = HashMap::new();
         plan.iter().for_each(|day| {
             for r_id in day {
@@ -23,16 +19,16 @@ impl ShoppingList {
                     }
                     let model = ingr.parsed.as_ref().unwrap();
 
-                    if model.len() == 0 {
+                    if model.is_empty() {
                         continue;
                     }
 
-                    let model = model.get(0).unwrap();
+                    let model = model.first().unwrap();
                     if !list.contains_key(&model.foodId) {
                         list.insert(model.foodId.clone(), (model.food.clone(), 0.0));
                     }
                     let value = list.get_mut(&model.foodId).unwrap();
-                    value.1 = value.1 + (model.weight / recipe.servings as f32);
+                    value.1 += model.weight / recipe.servings as f32;
                 }
             }
         });
@@ -44,7 +40,7 @@ impl ShoppingList {
             .collect::<Vec<(String, f32)>>()
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, plan: &Vec<Vec<usize>>, recipies: &Vec<Recipe>) {
+    pub fn show(&self, ui: &mut egui::Ui, plan: &[Vec<usize>], recipies: &[Recipe]) {
         let list = self.shopping_list(plan, recipies);
 
         TableBuilder::new(ui)

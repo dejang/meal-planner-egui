@@ -278,7 +278,7 @@ impl eframe::App for MealPlannerApp {
                     lock.0 = String::new();
                 }
 
-                if lock.1.len() != 0 {
+                if !lock.1.is_empty() {
                     self.load_from_bytes(base64::decode(&lock.1).unwrap().as_slice());
                     lock.1 = vec![];
                 }
@@ -287,7 +287,7 @@ impl eframe::App for MealPlannerApp {
 
         {
             // save our recipe if we closed the editor and it's been given a title
-            if self.editor_visible == false && self.recipe.title.is_empty() == false {
+            if !self.editor_visible && !self.recipe.title.is_empty() {
                 if let EditState::EDITING(recipe_idx) = self.browser.edit_recipe_idx {
                     self.recipies[recipe_idx] = self.recipe.clone();
                 } else {

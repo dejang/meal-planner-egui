@@ -27,7 +27,7 @@ pub struct RecipeBrowser {
 }
 
 impl RecipeBrowser {
-    pub fn show(&mut self, ui: &mut egui::Ui, recipes: &Vec<Recipe>) {
+    pub fn show(&mut self, ui: &mut egui::Ui, recipes: &[Recipe]) {
         let max_width = ui.max_rect().width();
         egui::SidePanel::left("recipe list")
             .show_separator_line(false)
@@ -91,10 +91,7 @@ impl RecipeBrowser {
             });
 
         let default_recipe = Recipe::default();
-        let recipe = recipes
-            .get(self.active_recipe)
-            .or(Some(&default_recipe))
-            .unwrap();
+        let recipe = recipes.get(self.active_recipe).unwrap_or(&default_recipe);
 
         egui::SidePanel::right("view recipe")
             .resizable(true)

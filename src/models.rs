@@ -131,11 +131,7 @@ impl AnalysisResponseView {
         if self.show_nutrients {
             let default_nutrient = Nutrient::default();
             for v in VITAMINS {
-                let nutrient = response
-                    .totalDaily
-                    .get(v)
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                let nutrient = response.totalDaily.get(v).unwrap_or(&default_nutrient);
                 ui.horizontal_wrapped(|ui| {
                     ui.label(&nutrient.label);
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
@@ -147,11 +143,7 @@ impl AnalysisResponseView {
             ui.separator();
 
             for m in MINERALS {
-                let nutrient = response
-                    .totalDaily
-                    .get(m)
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                let nutrient = response.totalDaily.get(m).unwrap_or(&default_nutrient);
                 ui.horizontal_wrapped(|ui| {
                     ui.label(&nutrient.label);
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
@@ -165,7 +157,6 @@ impl AnalysisResponseView {
 
 impl AnalysisResponse {
     pub fn ui(&self, ui: &mut egui::Ui, servings: u32, servings_label: &str) {
-        let servings = servings.clone();
         ui.vertical(|ui| {
             ui.group(|ui| {
                 ui.heading("Nutrition Facts");
@@ -181,31 +172,17 @@ impl AnalysisResponse {
                 ui.separator();
 
                 let default_nutrient = Nutrient::default();
-                let fat_gr = self
-                    .totalNutrients
-                    .get("FAT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let fat_percent = self
-                    .totalDaily
-                    .get("FAT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                let fat_gr = self.totalNutrients.get("FAT").unwrap_or(&default_nutrient);
+                let fat_percent = self.totalDaily.get("FAT").unwrap_or(&default_nutrient);
                 let fat_sat_gr = self
                     .totalNutrients
                     .get("FASAT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let fat_sat_percent = self
-                    .totalDaily
-                    .get("FASAT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
+                let fat_sat_percent = self.totalDaily.get("FASAT").unwrap_or(&default_nutrient);
                 let trans_fat_gr = self
                     .totalNutrients
                     .get("FATRN")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
 
                 self.row(
                     ui,
@@ -229,13 +206,8 @@ impl AnalysisResponse {
                 let cholesterol_gr = self
                     .totalNutrients
                     .get("CHOLE")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let cholesterol_percent = self
-                    .totalDaily
-                    .get("CHOLE")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
+                let cholesterol_percent = self.totalDaily.get("CHOLE").unwrap_or(&default_nutrient);
                 self.row(
                     ui,
                     "Cholesterol",
@@ -244,16 +216,8 @@ impl AnalysisResponse {
                     &[],
                 );
 
-                let sodium_gr = self
-                    .totalNutrients
-                    .get("NA")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let sodium_percent = self
-                    .totalDaily
-                    .get("NA")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                let sodium_gr = self.totalNutrients.get("NA").unwrap_or(&default_nutrient);
+                let sodium_percent = self.totalDaily.get("NA").unwrap_or(&default_nutrient);
                 self.row(
                     ui,
                     "Sodium",
@@ -265,28 +229,17 @@ impl AnalysisResponse {
                 let carbs_gr = self
                     .totalNutrients
                     .get("CHOCDF")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let carbs_percent = self
-                    .totalDaily
-                    .get("CHOCDF")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
+                let carbs_percent = self.totalDaily.get("CHOCDF").unwrap_or(&default_nutrient);
                 let fiber_gr = self
                     .totalNutrients
                     .get("FIBTG")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let fiber_percent = self
-                    .totalDaily
-                    .get("FIBTG")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
+                let fiber_percent = self.totalDaily.get("FIBTG").unwrap_or(&default_nutrient);
                 let sugar_gr = self
                     .totalNutrients
                     .get("SUGAR")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
 
                 self.row(
                     ui,
@@ -310,13 +263,8 @@ impl AnalysisResponse {
                 let protein_gr = self
                     .totalNutrients
                     .get("PROCNT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
-                let protein_percent = self
-                    .totalDaily
-                    .get("PROCNT")
-                    .or(Some(&default_nutrient))
-                    .unwrap();
+                    .unwrap_or(&default_nutrient);
+                let protein_percent = self.totalDaily.get("PROCNT").unwrap_or(&default_nutrient);
                 self.row(
                     ui,
                     "Protein",
@@ -345,7 +293,7 @@ impl AnalysisResponse {
                 });
             });
 
-            if children.len() > 0 {
+            if !children.is_empty() {
                 for (key, qty, daily) in children {
                     ui.horizontal(|ui| {
                         ui.add_space(DEFAULT_PADDING);
@@ -387,7 +335,7 @@ impl Default for Recipe {
 impl Recipe {
     pub fn ingredients_to_vec(&self) -> Vec<String> {
         self.ingredients
-            .split("\n")
+            .split('\n')
             .map(|line| line.trim().to_string())
             .filter(|line| line.ne(&"".to_string()))
             .collect()
@@ -413,28 +361,24 @@ impl Recipe {
                 .macros
                 .totalNutrients
                 .get(*code)
-                .or(Some(&default_nutrient))
-                .unwrap();
+                .unwrap_or(&default_nutrient);
             let self_daily_nutrient = self
                 .macros
                 .totalDaily
                 .get(*code)
-                .or(Some(&default_nutrient))
-                .unwrap();
+                .unwrap_or(&default_nutrient);
 
             let from_nutrient_gr = from
                 .macros
                 .totalNutrients
                 .get(*code)
-                .or(Some(&default_nutrient))
-                .unwrap();
+                .unwrap_or(&default_nutrient);
 
             let from_nutrient_daily = from
                 .macros
                 .totalDaily
                 .get(*code)
-                .or(Some(&default_nutrient))
-                .unwrap();
+                .unwrap_or(&default_nutrient);
 
             merged.macros.totalNutrients.insert(
                 code.to_string(),
