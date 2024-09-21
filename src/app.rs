@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use egui::{Button, Pos2};
+use base64::prelude::*;
 use ehttp::Request;
 use log::error;
 use rfd::FileHandle;
@@ -38,13 +38,9 @@ pub struct MealPlannerApp {
     api_key: String,
     app_id: String,
     #[serde(skip)]
-    pub planner_visible: bool,
-    #[serde(skip)]
     planner: Planner,
     #[serde(skip)]
     pub editor_visible: bool,
-    #[serde(skip)]
-    pub browser_visible: bool,
     #[serde(skip)]
     pub shopping_list_visible: bool,
     #[serde(skip)]
@@ -68,10 +64,8 @@ impl Default for MealPlannerApp {
         Self {
             api_key: String::new(),
             app_id: String::new(),
-            planner_visible: true,
             planner: Planner::default(),
             editor_visible: false,
-            browser_visible: true,
             shopping_list_visible: false,
             settings_window_visible: false,
             browser: RecipeBrowser::default(),
@@ -196,7 +190,7 @@ impl MealPlannerApp {
         use std::io::Write;
         let mut file = std::fs::File::create("state.json").unwrap();
         let content = serde_json::to_string(&self).unwrap();
-        file.write_all(base64::encode(content).as_bytes())
+        file.write_all(BASE64_STANDARD.encode(content).as_bytes())
             .expect("Exporting data failed");
     }
 
@@ -212,7 +206,7 @@ impl MealPlannerApp {
         let link = doc.create_element("a").unwrap();
         let _ = link.set_attribute(
             "href",
-            &format!("data:text/plain,{}", base64::encode(content)),
+            &format!("data:text/plain,{}", BASE64_STANDARD.encode(content)),
         );
         let _ = link.set_attribute("download", "backup.json");
         let link: web_sys::HtmlAnchorElement =
@@ -274,12 +268,12 @@ impl eframe::App for MealPlannerApp {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
                 if !lock.0.is_empty() {
                     let content = std::fs::read_to_string(&lock.0).expect("Unable to read");
-                    self.load_from_bytes(base64::decode(content).unwrap().as_slice());
+                    self.load_from_bytes(BASE64_STANDARD.decode(content).unwrap().as_slice());
                     lock.0 = String::new();
                 }
 
                 if !lock.1.is_empty() {
-                    self.load_from_bytes(base64::decode(&lock.1).unwrap().as_slice());
+                    self.load_from_bytes(BASE64_STANDARD.decode(&lock.1).unwrap().as_slice());
                     lock.1 = vec![];
                 }
             }
@@ -322,18 +316,8 @@ impl eframe::App for MealPlannerApp {
                     ui.add_space(16.0);
                 }
 
-                let planner_btn = Button::new("Planner").selected(self.planner_visible);
-                if ui.add(planner_btn).clicked() {
-                    self.planner_visible = !self.planner_visible;
-                }
-
                 if ui.button("New Recipe").clicked() {
                     self.editor_visible = true;
-                }
-
-                let recipe_browser_btn = Button::new("Recipe Browser").selected(self.browser_visible);
-                if ui.add(recipe_browser_btn).clicked() {
-                    self.browser_visible = !self.browser_visible;
                 }
 
                 if ui.button("Import Data").clicked() {
@@ -359,24 +343,21 @@ impl eframe::App for MealPlannerApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let max_width = ui.max_rect().width();
-            let max_height = ui.max_rect().height();
-            
+            let max_height = ui.available_height();
             if let EditState::PENDING(recipe_idx) = self.browser.edit_recipe_idx {
                 self.recipe = self.recipies.get(recipe_idx).unwrap().clone();
                 self.browser.edit_recipe_idx = EditState::EDITING(recipe_idx);
                 self.editor_visible = true;
             }
-            egui::Window::new("Planner")
-                .open(&mut self.planner_visible)
-                .default_height(percentage(max_height, 60))
-                .default_width(percentage(max_width, 95))
-                .default_pos(Pos2{ x: 0., y: 30. })
-                .resizable(true)
-                .show(ctx, |ui| {
-                    self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
-                });
+             
+            egui::TopBottomPanel::top("recipe_browser").default_height(percentage(max_height, 60)).resizable(true).show_inside(ui, |ui| {
+                self.browser.show(ui, &self.recipies);
+            });
 
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
+            });
+            
             let response = egui::Window::new("Recipe Editor")
                 .open(&mut self.editor_visible)
                 .resizable(true)
@@ -391,16 +372,6 @@ impl eframe::App for MealPlannerApp {
                     }
                 }
             }
-
-            egui::Window::new("Recipe Browser")
-                .open(&mut self.browser_visible)
-                .default_width(max_width - DEFAULT_PADDING)
-                .default_height(percentage(max_height, 30))
-                .default_pos(Pos2 { x: 0., y: percentage(max_height, 60) + 30. })
-                .resizable(true)
-                .show(&ctx.clone(), |ui| {
-                    self.browser.show(ui, &self.recipies);
-                });
 
             egui::Window::new("Shopping List")
                 .open(&mut self.shopping_list_visible)
@@ -449,26 +420,7 @@ impl eframe::App for MealPlannerApp {
                     ui.add_space(DEFAULT_PADDING);
                     ui.label("You can use the Planner and Browse Recipe features without an Edamam account.");
                 });
-
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                powered_by_egui_and_eframe(ui);
-                egui::warn_if_debug_build(ui);
-            });
-        });
+       });
     }
 }
 
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
-}
