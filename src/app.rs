@@ -357,7 +357,7 @@ impl eframe::App for MealPlannerApp {
                 self.editor_visible = true;
             }
 
-            egui::TopBottomPanel::top("recipe_browser").default_height(percentage(max_height, 60)).resizable(true).show_inside(ui, |ui| {
+            egui::TopBottomPanel::top("recipe_browser").default_height(percentage(max_height, 50)).resizable(true).show_inside(ui, |ui| {
                 self.browser.show(ui, &self.recipies);
             });
 
