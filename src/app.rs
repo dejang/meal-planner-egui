@@ -10,7 +10,12 @@ use log::error;
 use rfd::FileHandle;
 
 use crate::{
-    models::{AnalysisRequest, AnalysisResponse, Recipe}, planner::Planner, recipe_editor::Editor, recipe_viewer::{EditState, RecipeBrowser}, shopping_list::ShoppingList, util::{percentage, DEFAULT_PADDING}
+    models::{AnalysisRequest, AnalysisResponse, Recipe},
+    planner::Planner,
+    recipe_editor::Editor,
+    recipe_viewer::{EditState, RecipeBrowser},
+    shopping_list::ShoppingList,
+    util::{percentage, DEFAULT_PADDING},
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -349,7 +354,7 @@ impl eframe::App for MealPlannerApp {
                 self.browser.edit_recipe_idx = EditState::EDITING(recipe_idx);
                 self.editor_visible = true;
             }
-             
+
             egui::TopBottomPanel::top("recipe_browser").default_height(percentage(max_height, 60)).resizable(true).show_inside(ui, |ui| {
                 self.browser.show(ui, &self.recipies);
             });
@@ -357,7 +362,7 @@ impl eframe::App for MealPlannerApp {
             egui::CentralPanel::default().show_inside(ui, |ui| {
                 self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
             });
-            
+
             let response = egui::Window::new("Recipe Editor")
                 .open(&mut self.editor_visible)
                 .resizable(true)
@@ -398,7 +403,7 @@ impl eframe::App for MealPlannerApp {
                         });
                     });
                 });
-            
+
             let mut show_welcome_screen = self.api_key.is_empty() || self.app_id.is_empty();
             egui::Window::new("Welcome Screen")
                 .open(&mut show_welcome_screen)
@@ -423,4 +428,3 @@ impl eframe::App for MealPlannerApp {
        });
     }
 }
-

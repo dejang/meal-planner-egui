@@ -1,21 +1,24 @@
 use egui::{vec2, DragValue, Response, RichText, Sense};
 
-use crate::{models::Recipe, util::{percentage, DEFAULT_PADDING}};
+use crate::{
+    models::Recipe,
+    util::{percentage, DEFAULT_PADDING},
+};
 
 pub struct Editor;
 impl Editor {
     pub fn new() -> Self {
-       Self {}
+        Self {}
     }
 
     pub fn ui(&self, ui: &mut egui::Ui, recipe: &mut Recipe) -> Response {
         let mut response: Response = ui.interact(ui.clip_rect(), ui.id(), Sense::hover());
-       let max_width = ui.max_rect().width();
+        let max_width = ui.max_rect().width();
         let max_height = ui.max_rect().height();
-        
+
         egui::SidePanel::left("edit_left_panel")
                 .resizable(true)
-                .default_width(percentage(max_width, 25))            
+                .default_width(percentage(max_width, 25))
                 .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui|  {
                     ui.heading("Ingredient list");
@@ -25,8 +28,8 @@ impl Editor {
             });
 
         egui::SidePanel::right("edit_right_panel")
-           .default_width(percentage(max_width, 25))
-           .show_inside(ui, |ui| {
+            .default_width(percentage(max_width, 25))
+            .show_inside(ui, |ui| {
                 recipe.macros.ui(ui, recipe.servings, "Amount per serving");
             });
 
