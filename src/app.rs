@@ -203,7 +203,6 @@ impl MealPlannerApp {
 
     #[cfg(target_arch = "wasm32")]
     fn export_data(&mut self) {
-        //TODO: currently broken because of bug in egui
         use web_sys::wasm_bindgen::JsCast;
 
         let content = serde_json::to_string_pretty(&self).unwrap();
@@ -307,9 +306,6 @@ impl eframe::App for MealPlannerApp {
             }
         }
 
-        // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
-
         egui::TopBottomPanel::top("main_top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
@@ -332,7 +328,6 @@ impl eframe::App for MealPlannerApp {
                     self.import_data(task);
                 }
 
-                // #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export Data").clicked() {
                     self.export_data();
                 }
