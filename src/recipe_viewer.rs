@@ -1,5 +1,3 @@
-use std::usize;
-
 use egui::{Button, Id, Image, ScrollArea};
 
 use crate::{

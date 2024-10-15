@@ -104,7 +104,7 @@ impl MealPlannerApp {
 
     #[cfg(target_arch = "wasm32")]
     pub fn same_recipe_collection(&self, incoming: &Vec<Recipe>) -> bool {
-        for r in self.recipies {
+        for r in &self.recipies {
             let mut not_found = true;
             for ir in incoming {
                 if r.title == ir.title {

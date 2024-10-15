@@ -33,7 +33,7 @@ impl Default for Planner {
 }
 
 impl Planner {
-    pub fn ui(&mut self, ui: &mut egui::Ui, plan: &mut Vec<Vec<usize>>, recipe_list: &Vec<Recipe>) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, plan: &mut Vec<Vec<usize>>, recipe_list: &[Recipe]) {
         let delete_zone_frame = Frame::default().inner_margin(4.0);
         let (_x, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(delete_zone_frame, |ui| {
             ui.set_width(ui.max_rect().width());
@@ -78,13 +78,11 @@ impl Planner {
                                 let item_location = Location {
                                     col: col_idx,
                                     row: row_idx,
-                                    recipe_index: item.clone(),
+                                    recipe_index: *item,
                                 };
                                 let response = ui
                                     .dnd_drag_source(item_id, item_location, |ui| {
-                                        ui.label(
-                                            recipe_list.get(item.clone()).unwrap().to_string(),
-                                        );
+                                        ui.label(recipe_list.get(*item).unwrap().to_string());
                                     })
                                     .response;
 
@@ -120,7 +118,7 @@ impl Planner {
                                         to = Some(Location {
                                             col: col_idx,
                                             row: insert_row_idx,
-                                            recipe_index: item.clone(),
+                                            recipe_index: *item,
                                         });
                                     }
                                 }
