@@ -5,12 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::DEFAULT_PADDING;
 
-const VITAMINS: [&'static str; 10] = [
+const VITAMINS: [&str; 10] = [
     "VITA_RAE", "THIA", "RIBF", "NIA", "VITB6A", "VITB12", "VITC", "VITD", "TOCPHA", "VITK1",
 ];
-const MINERALS: [&'static str; 8] = ["CA", "MG", "ZN", "FE", "P", "K", "NA", "FOLDFE"];
+const MINERALS: [&str; 8] = ["CA", "MG", "ZN", "FE", "P", "K", "NA", "FOLDFE"];
 
-const FOOD_LABEL_CODES: [&'static str; 9] = [
+const FOOD_LABEL_CODES: [&str; 9] = [
     "FAT", "FASAT", "FATRN", "CHOLE", "NA", "CHOCDF", "FIBTG", "SUGAR", "PROCNT",
 ];
 

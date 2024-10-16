@@ -2,6 +2,7 @@
 
 mod app;
 mod icons;
+mod meal_planner;
 mod models;
 mod planner;
 mod recipe_editor;

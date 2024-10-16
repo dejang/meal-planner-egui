@@ -24,10 +24,7 @@ impl Default for Planner {
     fn default() -> Self {
         Self {
             search_term: String::new(),
-            collapsible_nutrients: (0..7)
-                .into_iter()
-                .map(|_| AnalysisResponseView::default())
-                .collect(),
+            collapsible_nutrients: (0..7).map(|_| AnalysisResponseView::default()).collect(),
         }
     }
 }

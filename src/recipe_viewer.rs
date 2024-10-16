@@ -9,11 +9,11 @@ use crate::{
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
 pub enum EditState<T> {
-    PENDING(T),
-    EDITING(T),
+    Pending(T),
+    Editing(T),
     DeleteRecipeAtIndex(T),
     #[default]
-    EMPTY,
+    Empty,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -59,7 +59,7 @@ impl RecipeBrowser {
 
                             let edit_btn = Button::image(Image::from_bytes("edit", icons::EDIT));
                             if ui.add(edit_btn).clicked() {
-                                self.edit_recipe_idx = EditState::PENDING(i);
+                                self.edit_recipe_idx = EditState::Pending(i);
                             }
 
                             let delete_btn =

@@ -10,6 +10,7 @@ use log::error;
 use rfd::FileHandle;
 
 use crate::{
+    meal_planner::MealPlanner,
     models::{AnalysisRequest, AnalysisResponse, Recipe},
     planner::Planner,
     recipe_editor::Editor,
@@ -40,8 +41,6 @@ pub enum Download {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct MealPlannerApp {
-    api_key: String,
-    app_id: String,
     #[serde(skip)]
     planner: Planner,
     #[serde(skip)]
@@ -58,67 +57,26 @@ pub struct MealPlannerApp {
     browser: RecipeBrowser,
     #[serde(skip)]
     shopping_list: ShoppingList,
-
-    pub recipies: Vec<Recipe>,
-    pub recipe: Recipe,
-    pub daily_plan: Vec<Vec<usize>>,
+    meal_planner: MealPlanner,
 }
 
 impl Default for MealPlannerApp {
     fn default() -> Self {
         Self {
-            api_key: String::new(),
-            app_id: String::new(),
             planner: Planner::default(),
             editor_visible: false,
             shopping_list_visible: false,
             settings_window_visible: false,
             browser: RecipeBrowser::default(),
             shopping_list: ShoppingList::default(),
-            recipies: vec![],
-            recipe: Recipe::default(),
             download: Arc::new(Mutex::new(Download::None)),
             import_data: Arc::new(Mutex::new((String::new(), vec![]))),
-            daily_plan: vec![vec![], vec![], vec![], vec![], vec![], vec![]],
+            meal_planner: MealPlanner::default(),
         }
     }
 }
 
 impl MealPlannerApp {
-    pub fn load_from_bytes(&mut self, json: &[u8]) {
-        let state: MealPlannerApp = serde_json::from_slice(json).unwrap();
-        self.recipe = state.recipe;
-        self.recipies = state.recipies;
-        self.daily_plan = state.daily_plan;
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn is_daily_plan_empty(&self) -> bool {
-        let mut is_empty = 0;
-        for day in &self.daily_plan {
-            is_empty = is_empty >> day.len();
-        }
-
-        is_empty == 0
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn same_recipe_collection(&self, incoming: &Vec<Recipe>) -> bool {
-        for r in &self.recipies {
-            let mut not_found = true;
-            for ir in incoming {
-                if r.title == ir.title {
-                    not_found = false;
-                    break;
-                }
-            }
-            if not_found {
-                return false;
-            }
-        }
-        true
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -148,7 +106,9 @@ impl MealPlannerApp {
         if let Some(storage) = cc.storage {
             let previous_state: MealPlannerApp =
                 eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-            if previous_state.is_daily_plan_empty() && previous_state.recipies.len() == 0 {
+            if previous_state.meal_planner.is_daily_plan_empty()
+                && previous_state.meal_planner.recipies.len() == 0
+            {
                 return default_state;
             }
             return previous_state;
@@ -159,12 +119,13 @@ impl MealPlannerApp {
 
     fn request(&mut self, ctx: &egui::Context) {
         let analysis_request = AnalysisRequest {
-            ingr: self.recipe.ingredients_to_vec(),
+            ingr: self.meal_planner.recipe.ingredients_to_vec(),
         };
 
         let url = format!(
             "https://api.edamam.com/api/nutrition-details?app_id={}&app_key={}",
-            self.app_id, self.api_key
+            self.meal_planner.get_app_id(),
+            self.meal_planner.get_api_key()
         );
 
         let ctx = ctx.clone();
@@ -264,7 +225,7 @@ impl eframe::App for MealPlannerApp {
                 Download::InProgress => {}
                 Download::Done(result) => {
                     if let Ok(analysis) = result {
-                        self.recipe.macros = analysis;
+                        self.meal_planner.recipe.macros = analysis;
                     }
                 }
             };
@@ -274,12 +235,14 @@ impl eframe::App for MealPlannerApp {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
                 if !lock.0.is_empty() {
                     let content = std::fs::read_to_string(&lock.0).expect("Unable to read");
-                    self.load_from_bytes(BASE64_STANDARD.decode(content).unwrap().as_slice());
+                    self.meal_planner
+                        .load_from_bytes(BASE64_STANDARD.decode(content).unwrap().as_slice());
                     lock.0 = String::new();
                 }
 
                 if !lock.1.is_empty() {
-                    self.load_from_bytes(BASE64_STANDARD.decode(&lock.1).unwrap().as_slice());
+                    self.meal_planner
+                        .load_from_bytes(BASE64_STANDARD.decode(&lock.1).unwrap().as_slice());
                     lock.1 = vec![];
                 }
             }
@@ -287,22 +250,24 @@ impl eframe::App for MealPlannerApp {
 
         {
             // save our recipe if we closed the editor and it's been given a title
-            if !self.editor_visible && !self.recipe.title.is_empty() {
-                if let EditState::EDITING(recipe_idx) = self.browser.edit_recipe_idx {
-                    self.recipies[recipe_idx] = self.recipe.clone();
+            if !self.editor_visible && !self.meal_planner.recipe.title.is_empty() {
+                if let EditState::Editing(recipe_idx) = self.browser.edit_recipe_idx {
+                    self.meal_planner.recipies[recipe_idx] = self.meal_planner.recipe.clone();
                 } else {
-                    self.recipies.push(self.recipe.clone());
+                    self.meal_planner
+                        .recipies
+                        .push(self.meal_planner.recipe.clone());
                 }
-                self.recipe = Recipe::default();
+                self.meal_planner.recipe = Recipe::default();
                 self.download = Arc::new(Mutex::new(Download::None));
-                self.browser.edit_recipe_idx = EditState::EMPTY;
+                self.browser.edit_recipe_idx = EditState::Empty;
             }
         }
 
         {
             if let EditState::DeleteRecipeAtIndex(idx) = self.browser.edit_recipe_idx {
-                self.recipies.remove(idx);
-                self.browser.edit_recipe_idx = EditState::EMPTY;
+                self.meal_planner.recipies.remove(idx);
+                self.browser.edit_recipe_idx = EditState::Empty;
             }
         }
 
@@ -346,18 +311,18 @@ impl eframe::App for MealPlannerApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let max_height = ui.available_height();
-            if let EditState::PENDING(recipe_idx) = self.browser.edit_recipe_idx {
-                self.recipe = self.recipies.get(recipe_idx).unwrap().clone();
-                self.browser.edit_recipe_idx = EditState::EDITING(recipe_idx);
+            if let EditState::Pending(recipe_idx) = self.browser.edit_recipe_idx {
+                self.meal_planner.recipe = self.meal_planner.recipies.get(recipe_idx).unwrap().clone();
+                self.browser.edit_recipe_idx = EditState::Editing(recipe_idx);
                 self.editor_visible = true;
             }
 
             egui::TopBottomPanel::top("recipe_browser").default_height(percentage(max_height, 50)).resizable(true).show_inside(ui, |ui| {
-                self.browser.show(ui, &self.recipies);
+                self.browser.show(ui, &self.meal_planner.recipies);
             });
 
             egui::CentralPanel::default().show_inside(ui, |ui| {
-                self.planner.ui(ui, &mut self.daily_plan, &self.recipies);
+                self.planner.ui(ui, &mut self.meal_planner.daily_plan, &self.meal_planner.recipies);
             });
 
             let response = egui::Window::new("Recipe Editor")
@@ -366,7 +331,7 @@ impl eframe::App for MealPlannerApp {
                 .collapsible(false)
                 .default_height(600.)
                 .default_width(percentage(ui.max_rect().width(), 80))
-                .show(&ctx.clone(), |ui| Editor::new().ui(ui, &mut self.recipe));
+                .show(&ctx.clone(), |ui| Editor::new().ui(ui, &mut self.meal_planner.recipe));
             if let Some(inner) = response {
                 if let Some(response) = inner.inner {
                     if response.lost_focus() {
@@ -380,7 +345,7 @@ impl eframe::App for MealPlannerApp {
                 .min_height(300.)
                 .resizable(true)
                 .show(&ctx.clone(), |ui| {
-                    self.shopping_list.show(ui, &self.daily_plan, &self.recipies);
+                    self.shopping_list.show(ui, &self.meal_planner.daily_plan, &self.meal_planner.recipies);
                });
 
             egui::Window::new("Settings")
@@ -391,19 +356,18 @@ impl eframe::App for MealPlannerApp {
                     ui.group(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Edamam API Key");
-                            ui.text_edit_singleline(&mut self.api_key);
+                            ui.text_edit_singleline(&mut self.meal_planner.get_api_key());
                         });
 
                         ui.horizontal(|ui| {
                             ui.label("Edamam APP ID");
-                            ui.text_edit_singleline(&mut self.app_id);
+                            ui.text_edit_singleline(&mut self.meal_planner.get_app_id());
                         });
                     });
                 });
 
-            let mut show_welcome_screen = self.api_key.is_empty() || self.app_id.is_empty();
             egui::Window::new("Welcome Screen")
-                .open(&mut show_welcome_screen)
+                .open(&mut self.meal_planner.is_api_configured())
                 .min_height(400.)
                 .max_height(650.)
                 .resizable(true)
