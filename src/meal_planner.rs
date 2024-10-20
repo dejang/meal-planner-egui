@@ -4,8 +4,8 @@ use crate::models::Recipe;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MealPlanner {
-    api_key: String,
-    app_id: String,
+    pub api_key: String,
+    pub app_id: String,
 
     pub recipies: Vec<Recipe>,
     pub recipe: Recipe,

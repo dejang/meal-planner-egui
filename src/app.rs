@@ -356,12 +356,12 @@ impl eframe::App for MealPlannerApp {
                     ui.group(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Edamam API Key");
-                            ui.text_edit_singleline(&mut self.meal_planner.get_api_key());
+                            ui.text_edit_singleline(&mut self.meal_planner.api_key);
                         });
 
                         ui.horizontal(|ui| {
                             ui.label("Edamam APP ID");
-                            ui.text_edit_singleline(&mut self.meal_planner.get_app_id());
+                            ui.text_edit_singleline(&mut self.meal_planner.app_id);
                         });
                     });
                 });
