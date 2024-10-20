@@ -367,7 +367,7 @@ impl eframe::App for MealPlannerApp {
                 });
 
             egui::Window::new("Welcome Screen")
-                .open(&mut self.meal_planner.is_api_configured())
+                .open(&mut !self.meal_planner.is_api_configured())
                 .min_height(400.)
                 .max_height(650.)
                 .resizable(true)
