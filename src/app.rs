@@ -322,7 +322,7 @@ impl eframe::App for MealPlannerApp {
             });
 
             egui::CentralPanel::default().show_inside(ui, |ui| {
-                self.planner.ui(ui, &mut self.meal_planner.daily_plan, &self.meal_planner.recipies);
+                self.planner.ui(ui, &mut self.meal_planner);
             });
 
             let response = egui::Window::new("Recipe Editor")

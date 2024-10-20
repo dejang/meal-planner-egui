@@ -70,6 +70,12 @@ impl MealPlanner {
     pub fn is_api_configured(&self) -> bool {
         !self.api_key.is_empty() && !self.app_id.is_empty()
     }
+
+    pub fn duplicate_day(&mut self, src_day: usize, dst_day: usize) {
+        let src_day_recipies = self.daily_plan.get(src_day);
+        let dst_day_recipies = src_day_recipies.cloned();
+        self.daily_plan[dst_day] = dst_day_recipies.unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -100,5 +106,12 @@ mod tests {
 
         let app = MealPlanner::default().connect("foo", "bar");
         assert!(app.is_api_configured());
+    }
+
+    #[test]
+    fn duplace_day() {
+        let mut app = MealPlanner::new(&[Recipe::default()], &[vec![0], vec![]]);
+        app.duplicate_day(0, 1);
+        assert_eq!(**app.daily_plan.get(1).unwrap(), vec![0]);
     }
 }

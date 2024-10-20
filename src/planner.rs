@@ -1,7 +1,8 @@
 use egui::*;
 
 use crate::{
-    icons::{self},
+    icons,
+    meal_planner::{self, MealPlanner},
     models::{AnalysisResponseView, Recipe},
     util::DEFAULT_PADDING,
 };
@@ -30,7 +31,7 @@ impl Default for Planner {
 }
 
 impl Planner {
-    pub fn ui(&mut self, ui: &mut egui::Ui, plan: &mut Vec<Vec<usize>>, recipe_list: &[Recipe]) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &mut MealPlanner) {
         let delete_zone_frame = Frame::default().inner_margin(4.0);
         let (_x, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(delete_zone_frame, |ui| {
             ui.set_width(ui.max_rect().width());
@@ -42,14 +43,14 @@ impl Planner {
         });
 
         if let Some(dragged_payload) = dropped_payload {
-            plan[dragged_payload.col].remove(dragged_payload.row);
+            meal_planner.daily_plan[dragged_payload.col].remove(dragged_payload.row);
         }
 
         // If there is a drop, store the location of the item being dragged, and the destination for the drop.
         let mut from = None;
         let mut to = None;
-        ui.columns(plan.len(), |uis| {
-            for (col_idx, column) in plan.clone().into_iter().enumerate() {
+        ui.columns(meal_planner.daily_plan.len(), |uis| {
+            for (col_idx, column) in meal_planner.daily_plan.clone().into_iter().enumerate() {
                 let ui = &mut uis[col_idx];
                 ui.horizontal(|ui| {
                     ui.heading(format!("Day {}", col_idx + 1));
@@ -59,7 +60,18 @@ impl Planner {
                             ui.label("Clear meals");
                         };
                         if ui.add(clear_btn).on_hover_ui(tooltip_ui).clicked() {
-                            plan.get_mut(col_idx).unwrap().clear();
+                            meal_planner.daily_plan.get_mut(col_idx).unwrap().clear();
+                        };
+
+                        if col_idx > 0 {
+                            let duplicate_btn =
+                                Button::image(Image::from_bytes("duplicate", icons::COPY));
+                            let tooltip_ui = |ui: &mut Ui| {
+                                ui.label("Duplicate from previous day.");
+                            };
+                            if ui.add(duplicate_btn).on_hover_ui(tooltip_ui).clicked() {
+                                meal_planner.duplicate_day(col_idx - 1, col_idx);
+                            };
                         }
                     });
                 });
@@ -79,7 +91,9 @@ impl Planner {
                                 };
                                 let response = ui
                                     .dnd_drag_source(item_id, item_location, |ui| {
-                                        ui.label(recipe_list.get(*item).unwrap().to_string());
+                                        ui.label(
+                                            meal_planner.recipies.get(*item).unwrap().to_string(),
+                                        );
                                     })
                                     .response;
 
@@ -136,7 +150,7 @@ impl Planner {
                         // footer
                         let mut total_daily = Recipe::default();
                         for recipe_index in column {
-                            total_daily = recipe_list[recipe_index].merge(&total_daily);
+                            total_daily = meal_planner.recipies[recipe_index].merge(&total_daily);
                         }
 
                         self.collapsible_nutrients[col_idx].ui(
@@ -159,10 +173,10 @@ impl Planner {
             let item = if from.row == usize::MAX {
                 from.recipe_index
             } else {
-                plan[from.col].remove(from.row)
+                meal_planner.daily_plan[from.col].remove(from.row)
             };
 
-            let column = &mut plan[to.col];
+            let column = &mut meal_planner.daily_plan[to.col];
             to.row = to.row.min(column.len());
             column.insert(to.row, item);
         }
