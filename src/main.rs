@@ -5,7 +5,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     use egui_extras::install_image_loaders;
-
+    use meal_planner::{Theme, set_theme};
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let native_options = eframe::NativeOptions {
@@ -25,6 +25,7 @@ fn main() -> eframe::Result {
         Box::new(|cc| {
             install_image_loaders(&cc.egui_ctx.clone());
             cc.egui_ctx.set_zoom_factor(0.8);
+            set_theme(&cc.egui_ctx, Theme::default());
             Ok(Box::new(meal_planner::MealPlannerApp::new(cc)))
         }),
     )
@@ -34,18 +35,27 @@ fn main() -> eframe::Result {
 #[cfg(target_arch = "wasm32")]
 fn main() {
     // Redirect `log` message to `console.log` and friends:
-
     use meal_planner::MealPlannerApp;
+    use wasm_bindgen::prelude::*;
+    use meal_planner::{Theme, set_theme};
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
+        // Get the canvas element first
+        let canvas = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.get_element_by_id("the_canvas_id"))
+            .and_then(|e| e.dyn_into::<web_sys::HtmlCanvasElement>().ok())
+            .expect("Cannot find canvas element with id 'the_canvas_id'");
+
         let start_result = eframe::WebRunner::new()
             .start(
-                "the_canvas_id",
+                canvas,  // Pass the canvas element instead of the ID
                 web_options,
                 Box::new(|cc| {
+                    set_theme(&cc.egui_ctx, Theme::default());
                     egui_extras::install_image_loaders(&cc.egui_ctx.clone());
                     Ok(Box::new(MealPlannerApp::new(cc)))
                 }),

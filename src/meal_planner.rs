@@ -3,6 +3,15 @@ use serde::{Deserialize, Serialize};
 use crate::models::Recipe;
 
 #[derive(Debug, Serialize, Deserialize)]
+struct OldMealPlanner {
+    api_key: Option<String>,
+    app_id: Option<String>,
+    recipies: Vec<Recipe>,
+    recipe: Recipe,
+    daily_plan: Vec<Vec<usize>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MealPlanner {
     pub api_key: String,
     pub app_id: String,
@@ -44,10 +53,22 @@ impl MealPlanner {
     }
 
     pub fn load_from_bytes(&mut self, json: &[u8]) {
-        let state: Self = serde_json::from_slice(json).unwrap();
-        self.recipe = state.recipe;
-        self.recipies = state.recipies;
-        self.daily_plan = state.daily_plan;
+        #[derive(Deserialize)]
+        struct SavedState {
+            api_key: Option<String>,
+            app_id: Option<String>,
+            recipies: Vec<Recipe>,
+            recipe: Recipe,
+            daily_plan: Vec<Vec<usize>>,
+        }
+
+        if let Ok(saved) = serde_json::from_slice::<SavedState>(json) {
+            self.recipe = saved.recipe;
+            self.recipies = saved.recipies;
+            self.daily_plan = saved.daily_plan;
+            self.api_key = saved.api_key.unwrap_or_default();
+            self.app_id = saved.app_id.unwrap_or_default();
+        }
     }
 
     pub fn is_daily_plan_empty(&self) -> bool {

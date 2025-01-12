@@ -10,13 +10,7 @@ use log::error;
 use rfd::FileHandle;
 
 use crate::{
-    meal_planner::MealPlanner,
-    models::{AnalysisRequest, AnalysisResponse, Recipe},
-    planner::Planner,
-    recipe_editor::Editor,
-    recipe_viewer::{EditState, RecipeBrowser},
-    shopping_list::ShoppingList,
-    util::{percentage, DEFAULT_PADDING},
+    meal_planner::MealPlanner, models::{AnalysisRequest, AnalysisResponse, Recipe}, planner::Planner, recipe_editor::Editor, recipe_viewer::{EditState, RecipeBrowser}, shopping_list::ShoppingList, util::{percentage, DEFAULT_PADDING}
 };
 
 #[cfg(not(target_arch = "wasm32"))]

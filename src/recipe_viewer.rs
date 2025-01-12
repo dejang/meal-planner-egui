@@ -1,10 +1,7 @@
-use egui::{Button, Id, Image, ScrollArea};
+use egui::{Button, Id, Image, RichText, ScrollArea};
 
 use crate::{
-    icons,
-    models::{AnalysisResponseView, Recipe},
-    planner::Location,
-    util::{percentage, DEFAULT_PADDING},
+    fonts::{heading2, heading3}, icons, models::{AnalysisResponseView, Recipe}, planner::Location, util::{percentage, DEFAULT_PADDING}
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
@@ -33,7 +30,11 @@ impl RecipeBrowser {
             .resizable(false)
             .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.heading("Recipe List");
+                    ui.label(
+                        RichText::new("Recipe List")
+                            .text_style(heading2())
+                            .strong(),
+                    );
                     ui.vertical_centered_justified(|ui| {
                         ui.text_edit_singleline(&mut self.recipe_name_search);
                     });

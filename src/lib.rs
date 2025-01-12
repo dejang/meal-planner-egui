@@ -9,4 +9,6 @@ mod recipe_editor;
 mod recipe_viewer;
 mod shopping_list;
 mod util;
+mod theme;
+pub use theme::*;
 pub use app::MealPlannerApp;
