@@ -1,9 +1,9 @@
 var cacheName = 'egui-template-pwa';
 var filesToCache = [
-  './',
-  './index.html',
-  './meal_planner.js',
-  './meal_planner_bg.wasm',
+  // './',
+  // './index.html',
+  // './meal_planner.js',
+  // './meal_planner_bg.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */

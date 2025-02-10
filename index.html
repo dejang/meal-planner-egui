@@ -11,9 +11,9 @@
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
     
-<script type="module" nonce="Y+HjgMNTFU9Rl2TsjFFQHw==">
-import init, * as bindings from 'https://dejang.github.io/meal-planner-egui/meal_planner-aca13b7a7657407e.js';
-const wasm = await init('https://dejang.github.io/meal-planner-egui/meal_planner-aca13b7a7657407e_bg.wasm');
+<script type="module">
+import init, * as bindings from '/meal_planner-ce9eeae503f2c595.js';
+const wasm = await init({ module_or_path: '/meal_planner-ce9eeae503f2c595_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -23,9 +23,9 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
-    <base href="https://dejang.github.io/meal-planner-egui/" />
+    <base href="/" />
 
-    <link rel="icon" href="https://dejang.github.io/meal-planner-egui/favicon-f402c8741ce815ec.ico" integrity="sha384&#x2D;jNOAE6jgE03LznIulCTVP6BH4NrTuROFjP9wj8bV1UUMJKtZAvstFpIAP3PDcFpx"/>
+    <link rel="icon" href="/favicon-f402c8741ce815ec.ico" integrity="sha384&#x2D;jNOAE6jgE03LznIulCTVP6BH4NrTuROFjP9wj8bV1UUMJKtZAvstFpIAP3PDcFpx"/>
 
 
     
@@ -127,7 +127,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="https://dejang.github.io/meal-planner-egui/meal_planner-aca13b7a7657407e.js" crossorigin=anonymous integrity="sha384-l7QPt+GE+EUrJmSVmD/Mnzz+2wjXvdZ2rJV/GCpCb2u55hHg0CRu2FJCQlfhes+X"><link rel="preload" href="https://dejang.github.io/meal-planner-egui/meal_planner-aca13b7a7657407e_bg.wasm" crossorigin=anonymous integrity="sha384-g279jsMYjxh9JXKu1wbqV/1auUB1KwqwF9VSztJoVxOVbAzup8GCsp82MjaTevWn" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/meal_planner-ce9eeae503f2c595.js" crossorigin="anonymous" integrity="sha384-MBspgV2fBEUqDshdwBuP9exR4c1NM3+4ThVOG6dbEzoIRvC8gi7Lc+/A7EoAywLX"><link rel="preload" href="/meal_planner-ce9eeae503f2c595_bg.wasm" crossorigin="anonymous" integrity="sha384-XxfCNkf4vqRswp7ZInTymdrE1waWpXrvF3oJ7kXkTQIGgVE2YXooTGAGdMn1Q7mg" as="fetch" type="application/wasm"></head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
