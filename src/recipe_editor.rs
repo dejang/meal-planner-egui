@@ -54,19 +54,13 @@ impl Editor {
                         ui.horizontal(|ui| {
                             ui.label("URL or local file: ");
                             ui.text_edit_singleline(&mut recipe.image_url);
+                            #[cfg(not(target_arch = "wasm32"))]
                             if ui.button("Choose file").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"])
                                     .pick_file()
                                 {
-                                    #[cfg(not(target_arch = "wasm32"))]
-                                    {
-                                        recipe.image_url = format!("file://{}", path.display());
-                                    }
-                                    #[cfg(target_arch = "wasm32")]
-                                    {
-                                        recipe.image_url = path.display().to_string();
-                                    }
+                                    recipe.image_url = format!("file://{}", path.display());
                                 }
                             }
                         });
