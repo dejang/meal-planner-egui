@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use egui::{epaint::text::{FontInsert, InsertFontFamily}, FontData, TextStyle};
 
 pub static GEIST_BLACK: &[u8] = include_bytes!("geist/Geist-Black.ttf");
@@ -30,4 +32,17 @@ pub fn install_fonts(ctx: &egui::Context) {
             }
         ],
     ));
+
+    ctx.add_font(FontInsert::new(
+        "icons",
+        FontData::from_static(include_bytes!("icons/lucide.ttf")),
+        vec![
+            InsertFontFamily {
+                family: egui::FontFamily::Name(Arc::from("icons")),
+                priority: egui::epaint::text::FontPriority::Highest,
+            }
+        ],
+    ));
 }
+
+

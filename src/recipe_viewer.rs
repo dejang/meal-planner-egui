@@ -1,7 +1,12 @@
-use egui::{Button, Id, Image, RichText, ScrollArea};
+use egui::{Button, DragAndDrop, Id, Image, Margin, RichText, ScrollArea};
 
 use crate::{
-    fonts::{heading2, heading3}, icons, models::{AnalysisResponseView, Recipe}, planner::Location, util::{percentage, DEFAULT_PADDING}
+    fonts::heading2,
+    icon, icons,
+    models::{AnalysisResponseView, Recipe},
+    planner::Location,
+    theme,
+    util::{percentage, DEFAULT_PADDING},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
@@ -24,18 +29,17 @@ pub struct RecipeBrowser {
 impl RecipeBrowser {
     pub fn show(&mut self, ui: &mut egui::Ui, recipes: &[Recipe]) {
         let max_width = ui.max_rect().width();
+
+        // Recipe list sidebar
         egui::SidePanel::left("recipe list")
-            .show_separator_line(false)
-            .default_width(percentage(max_width, 25))
-            .resizable(false)
+            .show_separator_line(true)
+            .default_width(percentage(max_width, 10))
+            .max_width(percentage(max_width, 40))
+            .resizable(true)
             .show_inside(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.label(
-                        RichText::new("Recipe List")
-                            .text_style(heading2())
-                            .strong(),
-                    );
-                    ui.vertical_centered_justified(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(RichText::new("Recipe List").text_style(heading2()).strong());
+                    ui.vertical(|ui| {
                         ui.text_edit_singleline(&mut self.recipe_name_search);
                     });
                     ui.add_space(DEFAULT_PADDING);
@@ -51,28 +55,18 @@ impl RecipeBrowser {
                     })
                     .collect::<Vec<(usize, &Recipe)>>();
                 ScrollArea::vertical().show(ui, |ui| {
-                    for (i, recipe) in recipies_in_view {
-                        ui.horizontal(|ui| {
-                            let view_btn = Button::image(Image::from_bytes("view", icons::VIEW));
-                            if ui.add(view_btn).clicked() {
-                                self.active_recipe = i;
-                            }
+                    ScrollArea::horizontal().show(ui, |ui| {
+                        ui.set_width(ui.max_rect().width());
+                        for (i, recipe) in recipies_in_view {
+                            ui.horizontal(|ui| {
+                                let delete_btn =
+                                    Button::image(Image::from_bytes("trash", icons::DELETE));
+                                if ui.add(delete_btn).clicked() {
+                                    self.edit_recipe_idx = EditState::DeleteRecipeAtIndex(i);
+                                }
 
-                            let edit_btn = Button::image(Image::from_bytes("edit", icons::EDIT));
-                            if ui.add(edit_btn).clicked() {
-                                self.edit_recipe_idx = EditState::Pending(i);
-                            }
-
-                            let delete_btn =
-                                Button::image(Image::from_bytes("trash", icons::DELETE));
-                            if ui.add(delete_btn).clicked() {
-                                self.edit_recipe_idx = EditState::DeleteRecipeAtIndex(i);
-                            }
-
-                            ui.add_space(DEFAULT_PADDING);
-
-                            let _response = ui
-                                .dnd_drag_source(
+                                // Draggable icon
+                                ui.dnd_drag_source(
                                     Id::new(("browser", recipe.to_string())),
                                     Location {
                                         col: 0,
@@ -80,86 +74,110 @@ impl RecipeBrowser {
                                         recipe_index: i,
                                     },
                                     |ui| {
-                                        ui.label(&recipe.title);
+                                        egui::Frame::none()
+                                            .fill(ui.visuals().extreme_bg_color)
+                                            .inner_margin(Margin::symmetric(4.0, 4.0))
+                                            .rounding(4.0)
+                                            .show(ui, |ui| {
+                                                ui.label(
+                                                    RichText::new(
+                                                        theme::typography::icons::ICON_MOVE,
+                                                    )
+                                                    .text_style(icon()),
+                                                )
+                                                .on_hover_text("Drag me to the planner");
+                                            });
                                     },
-                                )
-                                .response;
-                        });
-                    }
+                                );
+
+                                // Clickable title
+                                let text = if i == self.active_recipe {
+                                    RichText::new(&recipe.title).strong().underline()
+                                } else {
+                                    RichText::new(&recipe.title)
+                                };
+                                let label =
+                                    ui.add(egui::Label::new(text).sense(egui::Sense::click()));
+                                if label.double_clicked() {
+                                    self.edit_recipe_idx = EditState::Pending(i);
+                                } else if label.clicked() {
+                                    self.active_recipe = i;
+                                }
+                                label
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .on_hover_text("Click to view, double-click to edit");
+                            });
+                        }
+                    });
                 });
             });
 
         let default_recipe = Recipe::default();
         let recipe = recipes.get(self.active_recipe).unwrap_or(&default_recipe);
 
-        egui::SidePanel::right("view recipe")
-            .resizable(true)
-            .default_width(percentage(max_width, 75))
-            .show_inside(ui, |ui| {
-                let max_width = ui.max_rect().width();
-                let max_height = ui.max_rect().height();
+        // Main recipe view
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            let panel_width = ui.available_width();
+            let side_panel_width = percentage(panel_width, 15);
+            let nutrients_panel_width = percentage(panel_width, 30);
 
-                egui::SidePanel::left("view_left_panel")
-                    .resizable(true)
-                    .default_width(percentage(max_width, 25))
-                    .show_inside(ui, |ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.heading("Ingredients");
-                        });
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            ui.label(&recipe.ingredients);
-                        });
-                    });
-
-                egui::SidePanel::right("view_right_panel")
-                    .resizable(true)
-                    .default_width(percentage(max_width, 25))
-                    .show_inside(ui, |ui| {
-                        ui.vertical_centered(|ui| {
-                            egui::ScrollArea::vertical().show(ui, |ui| {
-                                self.analysis_response_view.ui(
-                                    ui,
-                                    &recipe.macros,
-                                    recipe.servings,
-                                    "Amount per serving",
-                                );
-                            });
-                        });
-                    });
-
-                egui::TopBottomPanel::top("view_top_panel")
-                    .resizable(true)
-                    .default_height(percentage(max_height, 50))
-                    .show_inside(ui, |ui| {
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            ui.vertical_centered(|ui| {
-                                ui.heading(&recipe.title);
-                                ui.add_space(DEFAULT_PADDING);
-                                ui.image(&recipe.image_url);
-                            });
-                        });
-                    });
-
-                egui::TopBottomPanel::bottom("view_bottom_panel")
-                    .resizable(false)
-                    .min_height(0.0)
-                    .show_inside(ui, |ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.heading(format!("Servings: {}", recipe.servings));
-                        });
-                    });
-
-                egui::CentralPanel::default().show_inside(ui, |ui| {
-                    ui.set_width(ui.max_rect().width());
-                    ui.set_height(ui.max_rect().height());
-
+            // Ingredients panel (left)
+            egui::SidePanel::left("ingredients_panel")
+                .show_separator_line(false)
+                .resizable(false)
+                .exact_width(side_panel_width)
+                .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
-                        ui.heading("Cooking Instructions");
+                        ui.heading("Ingredients");
                     });
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        ui.label(&recipe.instructions);
+                        ui.label(&recipe.ingredients);
                     });
                 });
+
+            // Nutrients panel (right)
+            egui::SidePanel::right("nutrients_panel")
+                .resizable(false)
+                .show_separator_line(false)
+                .exact_width(nutrients_panel_width)
+                .show_inside(ui, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        self.analysis_response_view.ui(
+                            ui,
+                            &recipe.macros,
+                            recipe.servings,
+                            "Amount per serving",
+                        );
+                    });
+                });
+
+            // Central content
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                egui::Frame::none()
+                    .fill(ui.visuals().window_fill)
+                    .inner_margin(10.0)
+                    .rounding(5.0)
+                    .show(ui, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.heading(&recipe.title);
+                            ui.add_space(DEFAULT_PADDING);
+                        });
+
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            ui.vertical_centered(|ui| {
+                                let available_width = ui.available_width();
+                                let image_width = percentage(available_width, 70);
+                                ui.add(
+                                    egui::Image::new(&recipe.image_url)
+                                        .max_size(egui::vec2(image_width, image_width)),
+                                );
+                                ui.add_space(DEFAULT_PADDING * 2.0);
+                                ui.heading("Instructions");
+                                ui.label(&recipe.instructions);
+                            });
+                        });
+                    });
             });
+        });
     }
 }
