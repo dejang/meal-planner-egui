@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use egui::{epaint::text::{FontInsert, InsertFontFamily}, FontData, TextStyle};
+use egui::{
+    epaint::text::{FontInsert, InsertFontFamily},
+    FontData, TextStyle,
+};
 
 pub static GEIST_BLACK: &[u8] = include_bytes!("geist/Geist-Black.ttf");
 pub static GEIST_BOLD: &[u8] = include_bytes!("geist/Geist-Bold.ttf");
@@ -25,24 +28,18 @@ pub fn install_fonts(ctx: &egui::Context) {
     ctx.add_font(FontInsert::new(
         "my_font",
         FontData::from_static(GEIST_REGULAR),
-        vec![
-            InsertFontFamily {
-                family: egui::FontFamily::Proportional,
-                priority: egui::epaint::text::FontPriority::Highest,
-            }
-        ],
+        vec![InsertFontFamily {
+            family: egui::FontFamily::Proportional,
+            priority: egui::epaint::text::FontPriority::Highest,
+        }],
     ));
 
     ctx.add_font(FontInsert::new(
         "icons",
         FontData::from_static(include_bytes!("icons/lucide.ttf")),
-        vec![
-            InsertFontFamily {
-                family: egui::FontFamily::Name(Arc::from("icons")),
-                priority: egui::epaint::text::FontPriority::Highest,
-            }
-        ],
+        vec![InsertFontFamily {
+            family: egui::FontFamily::Name(Arc::from("icons")),
+            priority: egui::epaint::text::FontPriority::Highest,
+        }],
     ));
 }
-
-

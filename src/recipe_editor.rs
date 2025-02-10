@@ -57,7 +57,7 @@ impl Editor {
                             if ui.button("Choose file").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"])
-                                    .pick_file() 
+                                    .pick_file()
                                 {
                                     #[cfg(not(target_arch = "wasm32"))]
                                     {

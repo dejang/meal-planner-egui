@@ -101,7 +101,7 @@ impl MealPlanner {
     pub fn remove_recipe(&mut self, recipe_idx: usize) {
         // Remove the recipe
         self.recipies.remove(recipe_idx);
-        
+
         // Update daily plan: remove references and adjust indices
         for day in &mut self.daily_plan {
             day.retain(|&meal_idx| meal_idx != recipe_idx);

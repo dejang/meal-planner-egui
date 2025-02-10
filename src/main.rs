@@ -5,7 +5,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     use egui_extras::install_image_loaders;
-    use meal_planner::{Theme, set_theme};
+    use meal_planner::{set_theme, Theme};
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let native_options = eframe::NativeOptions {
@@ -36,8 +36,8 @@ fn main() -> eframe::Result {
 fn main() {
     // Redirect `log` message to `console.log` and friends:
     use meal_planner::MealPlannerApp;
+    use meal_planner::{set_theme, Theme};
     use wasm_bindgen::prelude::*;
-    use meal_planner::{Theme, set_theme};
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
     let web_options = eframe::WebOptions::default();
@@ -52,7 +52,7 @@ fn main() {
 
         let start_result = eframe::WebRunner::new()
             .start(
-                canvas,  // Pass the canvas element instead of the ID
+                canvas, // Pass the canvas element instead of the ID
                 web_options,
                 Box::new(|cc| {
                     set_theme(&cc.egui_ctx, Theme::default());

@@ -24,7 +24,7 @@ pub struct Theme {
 
 impl Theme {
     pub fn visuals(&self, ctx: &egui::Context) {
-        use FontFamily::{Monospace, Proportional, Name};
+        use FontFamily::{Monospace, Name, Proportional};
 
         let text_styles: BTreeMap<TextStyle, FontId> = [
             (TextStyle::Heading, FontId::new(22.0, Proportional)),

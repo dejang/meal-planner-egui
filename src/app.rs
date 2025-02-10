@@ -10,7 +10,13 @@ use log::error;
 use rfd::FileHandle;
 
 use crate::{
-    meal_planner::MealPlanner, models::{AnalysisRequest, AnalysisResponse, Recipe}, planner::Planner, recipe_editor::Editor, recipe_viewer::{EditState, RecipeBrowser}, shopping_list::ShoppingList, util::{percentage, DEFAULT_PADDING}
+    meal_planner::MealPlanner,
+    models::{AnalysisRequest, AnalysisResponse, Recipe},
+    planner::Planner,
+    recipe_editor::Editor,
+    recipe_viewer::{EditState, RecipeBrowser},
+    shopping_list::ShoppingList,
+    util::{percentage, DEFAULT_PADDING},
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -266,44 +272,43 @@ impl eframe::App for MealPlannerApp {
         }
 
         // Fixed top menu bar
-        egui::TopBottomPanel::top("main_menu_bar")
-            .show(ctx, |ui| {
-                egui::menu::bar(ui, |ui| {
-                    // NOTE: no File->Quit on web pages!
-                    let is_web = cfg!(target_arch = "wasm32");
-                    if !is_web {
-                        ui.menu_button("File", |ui| {
-                            if ui.button("Quit").clicked() {
-                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                            }
-                        });
-                        ui.add_space(16.0);
-                    }
+        egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                // NOTE: no File->Quit on web pages!
+                let is_web = cfg!(target_arch = "wasm32");
+                if !is_web {
+                    ui.menu_button("File", |ui| {
+                        if ui.button("Quit").clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                    });
+                    ui.add_space(16.0);
+                }
 
-                    if ui.button("New Recipe").clicked() {
-                        self.editor_visible = true;
-                    }
+                if ui.button("New Recipe").clicked() {
+                    self.editor_visible = true;
+                }
 
-                    if ui.button("Import Data").clicked() {
-                        let task = rfd::AsyncFileDialog::new().pick_file();
-                        self.import_data(task);
-                    }
+                if ui.button("Import Data").clicked() {
+                    let task = rfd::AsyncFileDialog::new().pick_file();
+                    self.import_data(task);
+                }
 
-                    if ui.button("Export Data").clicked() {
-                        self.export_data();
-                    }
+                if ui.button("Export Data").clicked() {
+                    self.export_data();
+                }
 
-                    if ui.button("Shopping List").clicked() {
-                        self.shopping_list_visible = true;
-                    }
+                if ui.button("Shopping List").clicked() {
+                    self.shopping_list_visible = true;
+                }
 
-                    if ui.button("Settings").clicked() {
-                        self.settings_window_visible = true;
-                    }
+                if ui.button("Settings").clicked() {
+                    self.settings_window_visible = true;
+                }
 
-                    egui::widgets::global_dark_light_mode_buttons(ui);
-                });
+                egui::widgets::global_dark_light_mode_buttons(ui);
             });
+        });
 
         // Resizable bottom panel for the planner
         let screen_height = ctx.screen_rect().height();
@@ -332,7 +337,8 @@ impl eframe::App for MealPlannerApp {
         // Central panel for recipe browser
         egui::CentralPanel::default().show(ctx, |ui| {
             if let EditState::Pending(recipe_idx) = self.browser.edit_recipe_idx {
-                self.meal_planner.recipe = self.meal_planner.recipies.get(recipe_idx).unwrap().clone();
+                self.meal_planner.recipe =
+                    self.meal_planner.recipies.get(recipe_idx).unwrap().clone();
                 self.browser.edit_recipe_idx = EditState::Editing(recipe_idx);
                 self.editor_visible = true;
             }
@@ -347,7 +353,9 @@ impl eframe::App for MealPlannerApp {
             .collapsible(false)
             .default_height(600.)
             .default_width(percentage(ctx.screen_rect().width(), 80))
-            .show(&ctx.clone(), |ui| Editor::new().ui(ui, &mut self.meal_planner.recipe));
+            .show(&ctx.clone(), |ui| {
+                Editor::new().ui(ui, &mut self.meal_planner.recipe)
+            });
         if let Some(inner) = response {
             if let Some(response) = inner.inner {
                 if response.lost_focus() {
@@ -362,8 +370,12 @@ impl eframe::App for MealPlannerApp {
             .min_height(300.)
             .resizable(true)
             .show(&ctx.clone(), |ui| {
-                self.shopping_list.show(ui, &self.meal_planner.daily_plan, &self.meal_planner.recipies);
-           });
+                self.shopping_list.show(
+                    ui,
+                    &self.meal_planner.daily_plan,
+                    &self.meal_planner.recipies,
+                );
+            });
 
         // Settings window
         egui::Window::new("Settings")

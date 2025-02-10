@@ -1546,6 +1546,3 @@ pub const ICON_ZAP_OFF: &str = "\u{E1B4}";
 pub const ICON_ZAP: &str = "\u{E1B3}";
 pub const ICON_ZOOM_IN: &str = "\u{E1B5}";
 pub const ICON_ZOOM_OUT: &str = "\u{E1B6}";
-  
-  
-  
