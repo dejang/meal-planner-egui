@@ -97,6 +97,22 @@ impl MealPlanner {
         let dst_day_recipies = src_day_recipies.cloned();
         self.daily_plan[dst_day] = dst_day_recipies.unwrap();
     }
+
+    pub fn remove_recipe(&mut self, recipe_idx: usize) {
+        // Remove the recipe
+        self.recipies.remove(recipe_idx);
+        
+        // Update daily plan: remove references and adjust indices
+        for day in &mut self.daily_plan {
+            day.retain(|&meal_idx| meal_idx != recipe_idx);
+            // Decrease indices that were after the removed recipe
+            for meal_idx in day.iter_mut() {
+                if *meal_idx > recipe_idx {
+                    *meal_idx -= 1;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

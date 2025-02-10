@@ -13,6 +13,8 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -28,6 +30,8 @@ jobs:
   check_wasm:
     name: Check wasm32
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -44,6 +48,8 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -60,6 +66,8 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -76,6 +84,8 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -92,6 +102,8 @@ jobs:
   trunk:
     name: trunk
     runs-on: ubuntu-latest
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -107,6 +119,8 @@ jobs:
 
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      WINIT_UNIX_BACKEND: "x11"
     strategy:
       fail-fast: false
       matrix:

@@ -260,7 +260,7 @@ impl eframe::App for MealPlannerApp {
 
         {
             if let EditState::DeleteRecipeAtIndex(idx) = self.browser.edit_recipe_idx {
-                self.meal_planner.recipies.remove(idx);
+                self.meal_planner.remove_recipe(idx);
                 self.browser.edit_recipe_idx = EditState::Empty;
             }
         }

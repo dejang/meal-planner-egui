@@ -1,4 +1,4 @@
-use egui::{Button, DragAndDrop, Id, Image, Margin, RichText, ScrollArea};
+use egui::{Button, Id, Image, Margin, RichText, ScrollArea};
 
 use crate::{
     fonts::heading2,
@@ -58,7 +58,9 @@ impl RecipeBrowser {
                     ScrollArea::horizontal().show(ui, |ui| {
                         ui.set_width(ui.max_rect().width());
                         for (i, recipe) in recipies_in_view {
+                            ui.add_space(4.0); // Top padding
                             ui.horizontal(|ui| {
+                                ui.add_space(8.0); // Left padding
                                 let delete_btn =
                                     Button::image(Image::from_bytes("trash", icons::DELETE));
                                 if ui.add(delete_btn).clicked() {
@@ -107,6 +109,7 @@ impl RecipeBrowser {
                                     .on_hover_cursor(egui::CursorIcon::PointingHand)
                                     .on_hover_text("Click to view, double-click to edit");
                             });
+                            ui.add_space(10.0); // Bottom padding
                         }
                     });
                 });
@@ -173,7 +176,9 @@ impl RecipeBrowser {
                                 );
                                 ui.add_space(DEFAULT_PADDING * 2.0);
                                 ui.heading("Instructions");
-                                ui.label(&recipe.instructions);
+                                ui.label(
+                                    RichText::new(&recipe.instructions).text_style(heading2()),
+                                );
                             });
                         });
                     });

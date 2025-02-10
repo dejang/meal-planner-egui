@@ -50,15 +50,26 @@ impl Editor {
                         ui.text_edit_singleline(&mut recipe.title);
                         ui.add_space(DEFAULT_PADDING);
 
-                        ui.heading("Image url");
-                        ui.label(
-                            RichText::new(
-                                "On desktop applications this can be file:// for local images...",
-                            )
-                            .italics(),
-                        );
-                        ui.add_space(DEFAULT_PADDING);
-                        ui.text_edit_singleline(&mut recipe.image_url);
+                        ui.heading("Image");
+                        ui.horizontal(|ui| {
+                            ui.label("URL or local file: ");
+                            ui.text_edit_singleline(&mut recipe.image_url);
+                            if ui.button("Choose file").clicked() {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"])
+                                    .pick_file() 
+                                {
+                                    #[cfg(not(target_arch = "wasm32"))]
+                                    {
+                                        recipe.image_url = format!("file://{}", path.display());
+                                    }
+                                    #[cfg(target_arch = "wasm32")]
+                                    {
+                                        recipe.image_url = path.display().to_string();
+                                    }
+                                }
+                            }
+                        });
                         ui.add_space(DEFAULT_PADDING);
                         ui.allocate_ui(vec2(100.0, 200.0), |ui| {
                             ui.image(&recipe.image_url);

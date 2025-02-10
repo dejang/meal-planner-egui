@@ -27,14 +27,14 @@ impl Theme {
         use FontFamily::{Monospace, Proportional, Name};
 
         let text_styles: BTreeMap<TextStyle, FontId> = [
-            (TextStyle::Heading, FontId::new(18.0, Proportional)),
-            (heading2(), FontId::new(16.0, Proportional)),
-            (heading3(), FontId::new(14.0, Proportional)),
-            (TextStyle::Body, FontId::new(13.0, Proportional)),
-            (TextStyle::Monospace, FontId::new(12.0, Monospace)),
-            (TextStyle::Button, FontId::new(10.0, Proportional)),
-            (TextStyle::Small, FontId::new(6.0, Proportional)),
-            (icon(), FontId::new(12.0, Name("icons".into()))),
+            (TextStyle::Heading, FontId::new(22.0, Proportional)),
+            (heading2(), FontId::new(18.0, Proportional)),
+            (heading3(), FontId::new(16.0, Proportional)),
+            (TextStyle::Body, FontId::new(15.0, Proportional)),
+            (TextStyle::Monospace, FontId::new(15.0, Monospace)),
+            (TextStyle::Button, FontId::new(15.0, Proportional)),
+            (TextStyle::Small, FontId::new(13.0, Proportional)),
+            (icon(), FontId::new(16.0, Name("icons".into()))),
         ]
         .into();
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
