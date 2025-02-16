@@ -40,6 +40,7 @@ pub struct Theme {
 }
 
 impl Theme {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn visuals(&self, ctx: &egui::Context) {
         use FontFamily::{Monospace, Name, Proportional};
 
@@ -71,6 +72,44 @@ impl Theme {
             (
                 helvetica_small(),
                 FontId::new(14., Name("helvetica".into())),
+            ),
+        ]
+        .into();
+        ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn visuals(&self, ctx: &egui::Context) {
+        use FontFamily::{Monospace, Name, Proportional};
+
+        let text_styles: BTreeMap<TextStyle, FontId> = [
+            (
+                TextStyle::Heading,
+                FontId::new(21.0, Name("inter_heading".into())),
+            ),
+            (
+                TextStyle::Body,
+                FontId::new(15.0, Name("inter_body".into())),
+            ),
+            (TextStyle::Monospace, FontId::new(15.0, Monospace)),
+            (TextStyle::Button, FontId::new(14.0, Proportional)),
+            (
+                TextStyle::Small,
+                FontId::new(12.0, Name("inter_small".into())),
+            ),
+            (icon(), FontId::new(16.0, Proportional)),
+            (
+                recipe_title(),
+                FontId::new(26., Name("inter_heading".into())),
+            ),
+            (
+                helvetica_heading(),
+                FontId::new(20., Name("helvetica".into())),
+            ),
+            (helvetica_body(), FontId::new(14., Name("helvetica".into()))),
+            (
+                helvetica_small(),
+                FontId::new(12., Name("helvetica".into())),
             ),
         ]
         .into();

@@ -99,6 +99,7 @@ impl<'a> GalleryItem<'a> {
 impl<'a> Widget for GalleryItem<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let (width, height) = &self.size;
+        let height = percentage(*height, 90);
         let frame = egui::Frame::none()
             .fill(ui.visuals().extreme_bg_color)
             .shadow(Shadow {
@@ -112,12 +113,13 @@ impl<'a> Widget for GalleryItem<'a> {
                 left: 10.0,
                 right: 10.0,
                 top: 10.0,
-                bottom: 40.0,
+                bottom: 10.0,
             });
         let response = frame
             .show(ui, |ui| {
                 // ui.set_height(height);
                 ui.set_width(*width);
+                ui.set_height(height);
                 let response = ui.interact(
                     ui.max_rect(),
                     Id::new(&self.recipe.title),
@@ -129,21 +131,30 @@ impl<'a> Widget for GalleryItem<'a> {
                         ui.label(RichText::new(&self.recipe.title).text_style(recipe_title()));
                     });
                     ui.scope(|ui| {
-                        let image = Image::new(&self.recipe.image_url)
-                            .rounding(Rounding::same(10.))
-                            .max_size(vec2(percentage(*width, 100), percentage(*height, 70)));
+                        let image =
+                            Image::new(&self.recipe.image_url).rounding(Rounding::same(10.))
+                            .max_height(percentage(height, 65))
+                            .maintain_aspect_ratio(true);
+
                         ui.add(image);
                     });
 
-                    ui.add_space(15.);
-                    ui.separator();
-                    ui.horizontal(|ui| {
-                        ui.label(hb(&format!("Calories: {}", &self.recipe.macros.calories/ (self.recipe.servings as i32))));
-                        
-                        let layout = Layout::right_to_left(egui::Align::Center);
-                        ui.with_layout(layout, |ui| {
-                            ui.label(hb(&format!("Servings: {}", &self.recipe.servings)));
+                    ui.add_space(10.);
+
+                    let layout = Layout::bottom_up(egui::Align::Min);
+                    ui.with_layout(layout, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(hb(&format!(
+                                "Calories: {}",
+                                &self.recipe.macros.calories / (self.recipe.servings as i32)
+                            )));
+    
+                            let layout = Layout::right_to_left(egui::Align::Center);
+                            ui.with_layout(layout, |ui| {
+                                ui.label(hb(&format!("Servings: {}", &self.recipe.servings)));
+                            });    
                         });
+                        ui.separator();
                     });
 
                     // ui.add(Alergens::new(self.recipe));
@@ -252,7 +263,7 @@ impl RecipeGallery {
                 ui.add_space(10.);
 
                 let item_height = percentage(ui.available_height(), 100);
-                let item_width = 500.;
+                let item_width = 400.;
                 ScrollArea::horizontal().show(ui, |ui| {
                     let layout = Layout::left_to_right(egui::Align::Center);
                     ui.with_layout(layout, |ui| {

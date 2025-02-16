@@ -1,10 +1,10 @@
 use egui::*;
 
 use crate::{
-    icons,
-    meal_planner::{self, MealPlanner},
+    meal_planner::MealPlanner,
     models::{AnalysisResponseView, Recipe},
-    util::DEFAULT_PADDING,
+    typography::icons::{ICON_CLIPBOARD_PASTE, ICON_TRASH_2},
+    util::hb,
 };
 
 /// What is being dragged.
@@ -53,7 +53,7 @@ impl Planner {
                 ui.horizontal(|ui| {
                     ui.heading(format!("Day {}", col_idx + 1));
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                        let clear_btn = Button::image(Image::from_bytes("delete", icons::CLEAR));
+                        let clear_btn = Button::new(ICON_TRASH_2);
                         let tooltip_ui = |ui: &mut Ui| {
                             ui.label("Clear meals");
                         };
@@ -62,8 +62,7 @@ impl Planner {
                         };
 
                         if col_idx > 0 {
-                            let duplicate_btn =
-                                Button::image(Image::from_bytes("duplicate", icons::COPY));
+                            let duplicate_btn = Button::new(ICON_CLIPBOARD_PASTE);
                             let tooltip_ui = |ui: &mut Ui| {
                                 ui.label("Duplicate from previous day.");
                             };
@@ -89,9 +88,11 @@ impl Planner {
                                 };
                                 let response = ui
                                     .dnd_drag_source(item_id, item_location, |ui| {
-                                        ui.label(
-                                            meal_planner.recipies.get(*item).unwrap().to_string(),
-                                        );
+                                        ui.label(hb(&meal_planner
+                                            .recipies
+                                            .get(*item)
+                                            .unwrap()
+                                            .to_string()));
                                         ui.separator()
                                     })
                                     .response;

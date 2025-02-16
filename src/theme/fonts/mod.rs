@@ -102,8 +102,8 @@ pub fn install_fonts(ctx: &egui::Context) {
         "icons",
         FontData::from_static(include_bytes!("icons/lucide.ttf")),
         vec![InsertFontFamily {
-            family: egui::FontFamily::Name(Arc::from("icons")),
-            priority: egui::epaint::text::FontPriority::Highest,
+            family: egui::FontFamily::Proportional,
+            priority: egui::epaint::text::FontPriority::Lowest,
         }],
     ));
 }
