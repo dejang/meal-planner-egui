@@ -14,7 +14,7 @@ use crate::{
     models::{AnalysisRequest, AnalysisResponse, Recipe},
     planner::Planner,
     recipe_editor::Editor,
-    recipe_viewer::{EditState, RecipeBrowser},
+    recipe_gallery::RecipeGallery,
     shopping_list::ShoppingList,
     util::{percentage, DEFAULT_PADDING},
 };
@@ -54,7 +54,7 @@ pub struct MealPlannerApp {
     #[serde(skip)]
     import_data: Arc<Mutex<(String, Vec<u8>)>>,
     #[serde(skip)]
-    browser: RecipeBrowser,
+    recipe_gallery: RecipeGallery,
     #[serde(skip)]
     shopping_list: ShoppingList,
     meal_planner: MealPlanner,
@@ -67,11 +67,11 @@ impl Default for MealPlannerApp {
             editor_visible: false,
             shopping_list_visible: false,
             settings_window_visible: false,
-            browser: RecipeBrowser::default(),
             shopping_list: ShoppingList::default(),
             download: Arc::new(Mutex::new(Download::None)),
             import_data: Arc::new(Mutex::new((String::new(), vec![]))),
             meal_planner: MealPlanner::default(),
+            recipe_gallery: RecipeGallery::default(),
         }
     }
 }
@@ -251,23 +251,13 @@ impl eframe::App for MealPlannerApp {
         {
             // save our recipe if we closed the editor and it's been given a title
             if !self.editor_visible && !self.meal_planner.recipe.title.is_empty() {
-                if let EditState::Editing(recipe_idx) = self.browser.edit_recipe_idx {
-                    self.meal_planner.recipies[recipe_idx] = self.meal_planner.recipe.clone();
-                } else {
-                    self.meal_planner
-                        .recipies
-                        .push(self.meal_planner.recipe.clone());
-                }
+                self.meal_planner
+                    .recipies
+                    .push(self.meal_planner.recipe.clone());
+
                 self.meal_planner.recipe = Recipe::default();
                 self.download = Arc::new(Mutex::new(Download::None));
-                self.browser.edit_recipe_idx = EditState::Empty;
-            }
-        }
-
-        {
-            if let EditState::DeleteRecipeAtIndex(idx) = self.browser.edit_recipe_idx {
-                self.meal_planner.remove_recipe(idx);
-                self.browser.edit_recipe_idx = EditState::Empty;
+                // self.browser.edit_recipe_idx = EditState::Empty;
             }
         }
 
@@ -336,14 +326,7 @@ impl eframe::App for MealPlannerApp {
 
         // Central panel for recipe browser
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let EditState::Pending(recipe_idx) = self.browser.edit_recipe_idx {
-                self.meal_planner.recipe =
-                    self.meal_planner.recipies.get(recipe_idx).unwrap().clone();
-                self.browser.edit_recipe_idx = EditState::Editing(recipe_idx);
-                self.editor_visible = true;
-            }
-
-            self.browser.show(ui, &self.meal_planner.recipies);
+            self.recipe_gallery.ui(ui, &self.meal_planner);
         });
 
         // Recipe Editor window

@@ -6,7 +6,7 @@ mod meal_planner;
 mod models;
 mod planner;
 mod recipe_editor;
-mod recipe_viewer;
+mod recipe_gallery;
 mod shopping_list;
 mod theme;
 mod util;

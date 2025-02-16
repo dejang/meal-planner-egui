@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use egui::{Layout, RichText};
+use egui::Layout;
 use serde::{Deserialize, Serialize};
 
-use crate::util::DEFAULT_PADDING;
+use crate::util::{hb, hh, hs, DEFAULT_PADDING};
 
 const VITAMINS: [&str; 10] = [
     "VITA_RAE", "THIA", "RIBF", "NIA", "VITB6A", "VITB12", "VITC", "VITD", "TOCPHA", "VITK1",
@@ -133,9 +133,9 @@ impl AnalysisResponseView {
             for v in VITAMINS {
                 let nutrient = response.totalDaily.get(v).unwrap_or(&default_nutrient);
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(&nutrient.label);
+                    ui.label(hs(&nutrient.label));
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                        ui.label(nutrient.qty_with_unit_per_serving(servings));
+                        ui.label(hs(&nutrient.qty_with_unit_per_serving(servings)));
                     });
                 });
             }
@@ -145,9 +145,9 @@ impl AnalysisResponseView {
             for m in MINERALS {
                 let nutrient = response.totalDaily.get(m).unwrap_or(&default_nutrient);
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(&nutrient.label);
+                    ui.label(hs(&nutrient.label));
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                        ui.label(nutrient.qty_with_unit_per_serving(servings));
+                        ui.label(hs(&nutrient.qty_with_unit_per_serving(servings)));
                     });
                 });
             }
@@ -159,14 +159,14 @@ impl AnalysisResponse {
     pub fn ui(&self, ui: &mut egui::Ui, servings: u32, servings_label: &str) {
         ui.vertical(|ui| {
             ui.group(|ui| {
-                ui.heading("Nutrition Facts");
+                ui.label(hh("Nutrition Facts"));
                 ui.separator();
-                ui.label(RichText::new(servings_label).small().monospace());
+                ui.label(hs(servings_label));
                 let calories_per_serving = self.calories as u32 / servings;
                 self.row(ui, "Calories", "", &calories_per_serving.to_string(), &[]);
                 ui.separator();
                 ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                    ui.label(RichText::new("% Daily Value*"));
+                    ui.label(hb("% Daily Value*"));
                 });
 
                 ui.separator();
@@ -286,10 +286,10 @@ impl AnalysisResponse {
     ) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.heading(key);
-                ui.label(qty);
+                ui.label(hb(key));
+                ui.label(hs(qty));
                 ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                    ui.heading(daily);
+                    ui.label(hs(daily));
                 });
             });
 
@@ -297,10 +297,10 @@ impl AnalysisResponse {
                 for (key, qty, daily) in children {
                     ui.horizontal(|ui| {
                         ui.add_space(DEFAULT_PADDING);
-                        ui.label(key.to_string());
-                        ui.label(RichText::new(qty.to_string()).small());
+                        ui.label(hs(key));
+                        ui.label(hs(qty));
                         ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                            ui.label(daily.to_string());
+                            ui.label(hs(daily));
                         });
                     });
                 }

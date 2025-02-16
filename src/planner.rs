@@ -38,8 +38,6 @@ impl Planner {
             ui.label("Start by searching for a recipe.");
             ui.label("Drag the recipe you want in the desired column.");
             ui.label("Total macros is per 1 serving, drag the same recipe multiple times for multiple servings.");
-            ui.label("To delete a meal drag it onto this box.");
-            ui.add_space(DEFAULT_PADDING);
         });
 
         if let Some(dragged_payload) = dropped_payload {
@@ -94,6 +92,7 @@ impl Planner {
                                         ui.label(
                                             meal_planner.recipies.get(*item).unwrap().to_string(),
                                         );
+                                        ui.separator()
                                     })
                                     .response;
 
