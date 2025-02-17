@@ -3,15 +3,20 @@ use serde::{Deserialize, Serialize};
 use crate::models::Recipe;
 
 #[derive(Debug, Serialize, Deserialize)]
+struct IncomingState { 
+    pub recipies: Vec<Recipe>,
+    pub recipe: Recipe,
+    pub daily_plan: Vec<Vec<usize>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct IncomingJSON {
-    meal_planner: MealPlanner
+    meal_planner: IncomingState
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MealPlanner {
-    #[serde(skip)]
     pub api_key: String,
-    #[serde(skip)]
     pub app_id: String,
     pub recipies: Vec<Recipe>,
     pub recipe: Recipe,
@@ -74,8 +79,6 @@ impl MealPlanner {
             self.recipe = state.meal_planner.recipe;
             self.recipies = state.meal_planner.recipies;
             self.daily_plan = state.meal_planner.daily_plan;
-            self.api_key = state.meal_planner.api_key;
-            self.app_id = state.meal_planner.app_id;
             true
         } else {
             println!("{:?}", result.err().unwrap());
