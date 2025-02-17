@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use egui::{
     epaint::text::{FontInsert, InsertFontFamily},
-    FontData, TextStyle,
+    FontData,
 };
 
 pub static GEIST_BLACK: &[u8] = include_bytes!("geist/Geist-Black.ttf");
@@ -13,7 +13,7 @@ pub static GEIST_MEDIUM: &[u8] = include_bytes!("geist/Geist-Medium.ttf");
 pub static GEIST_REGULAR: &[u8] = include_bytes!("geist/Geist-Regular.ttf");
 pub static GEIST_SEMI_BOLD: &[u8] = include_bytes!("geist/Geist-SemiBold.ttf");
 pub static GEIST_THIN: &[u8] = include_bytes!("geist/Geist-Thin.ttf");
-pub static RECIPE_TITLE: &[u8] = include_bytes!("./SweetButtermilkScript-Regular.ttf");
+pub static HANDWRITING: &[u8] = include_bytes!("./Caveat-Regular.ttf");
 
 pub static HELVETICA: &[u8] = include_bytes!("./helvetica/Helvetica.ttf");
 pub static HELVETICA_BOLD: &[u8] = include_bytes!("./helvetica/Helvetica-Bold.ttf");
@@ -34,16 +34,16 @@ pub fn install_fonts(ctx: &egui::Context) {
     ));
 
     ctx.add_font(FontInsert::new(
-        "recipe_title",
-        FontData::from_static(RECIPE_TITLE),
+        "handwriting",
+        FontData::from_static(HANDWRITING),
         vec![InsertFontFamily {
-            family: egui::FontFamily::Name(Arc::from("recipe_title")),
+            family: egui::FontFamily::Name(Arc::from("handwriting")),
             priority: egui::epaint::text::FontPriority::Lowest,
         }],
     ));
 
     // Helvetica
-    let family =  egui::FontFamily::Name(Arc::from("helvetica"));
+    let family = egui::FontFamily::Name(Arc::from("helvetica"));
     ctx.add_font(FontInsert::new(
         "helvetica",
         FontData::from_static(HELVETICA),

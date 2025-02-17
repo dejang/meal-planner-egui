@@ -115,9 +115,11 @@ impl MealPlanner {
     }
 
     pub fn search_recipe(&self, arg: &str) -> Vec<Recipe> {
-        self.recipies.iter().filter(|recipe| {
-            recipe.title.to_lowercase().contains(&arg.to_lowercase())
-        }).map(|r| r.clone()).collect::<Vec<Recipe>>()
+        self.recipies
+            .iter()
+            .filter(|recipe| recipe.title.to_lowercase().contains(&arg.to_lowercase()))
+            .map(|r| r.clone())
+            .collect::<Vec<Recipe>>()
     }
 }
 

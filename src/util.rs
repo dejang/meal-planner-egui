@@ -8,7 +8,6 @@ pub fn percentage(value: f32, percent: u8) -> f32 {
     percent as f32 * value / 100.
 }
 
-
 pub fn hh(str: &str) -> RichText {
     RichText::new(str).text_style(helvetica_heading())
 }

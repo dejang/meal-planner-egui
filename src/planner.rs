@@ -3,12 +3,12 @@ use egui::*;
 use crate::{
     meal_planner::MealPlanner,
     models::{AnalysisResponseView, Recipe},
-    typography::icons::{ICON_CLIPBOARD_PASTE, ICON_TRASH_2},
+    typography::icons::{ICON_CLIPBOARD_PASTE, ICON_MONITOR_COG, ICON_TRASH_2},
     util::hb,
 };
 
 /// What is being dragged.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Location {
     pub col: usize,
     pub row: usize,
@@ -19,6 +19,9 @@ pub struct Location {
 pub struct Planner {
     search_term: String,
     collapsible_nutrients: Vec<AnalysisResponseView>,
+    context_menu_pos: Pos2,
+    show_context_menu: bool,
+    context_menu_payload: Option<Location>,
 }
 
 impl Default for Planner {
@@ -26,24 +29,15 @@ impl Default for Planner {
         Self {
             search_term: String::new(),
             collapsible_nutrients: (0..7).map(|_| AnalysisResponseView::default()).collect(),
+            context_menu_pos: Pos2::default(),
+            show_context_menu: false,
+            context_menu_payload: None,
         }
     }
 }
 
 impl Planner {
     pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &mut MealPlanner) {
-        let delete_zone_frame = Frame::default().inner_margin(4.0);
-        let (_x, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(delete_zone_frame, |ui| {
-            ui.set_width(ui.max_rect().width());
-            ui.label("Start by searching for a recipe.");
-            ui.label("Drag the recipe you want in the desired column.");
-            ui.label("Total macros is per 1 serving, drag the same recipe multiple times for multiple servings.");
-        });
-
-        if let Some(dragged_payload) = dropped_payload {
-            meal_planner.daily_plan[dragged_payload.col].remove(dragged_payload.row);
-        }
-
         // If there is a drop, store the location of the item being dragged, and the destination for the drop.
         let mut from = None;
         let mut to = None;
@@ -75,6 +69,10 @@ impl Planner {
                 ScrollArea::new([false, true])
                     .id_source(format!("scroll_area{}", col_idx))
                     .show(ui, |ui| {
+                        let pointer_pos = ui.ctx().pointer_latest_pos();
+                        let pointer_any_pressed = ui.ctx().input(|i| i.pointer.any_pressed());
+                        let pointer_is_over_area = ui.ctx().is_pointer_over_area();
+
                         let frame = Frame::default().inner_margin(4.0);
 
                         let (_, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(frame, |ui| {
@@ -88,17 +86,34 @@ impl Planner {
                                 };
                                 let response = ui
                                     .dnd_drag_source(item_id, item_location, |ui| {
-                                        ui.label(hb(&meal_planner
-                                            .recipies
-                                            .get(*item)
-                                            .unwrap()
-                                            .to_string()));
-                                        ui.separator()
+                                        Frame::default()
+                                            .show(ui, |ui| {
+                                                ui.label(hb(&meal_planner
+                                                    .recipies
+                                                    .get(*item)
+                                                    .unwrap()
+                                                    .to_string()));
+                                                ui.separator();
+                                                ui.interact(
+                                                    ui.max_rect(),
+                                                    item_id,
+                                                    Sense::click_and_drag(),
+                                                )
+                                            })
+                                            .inner
                                     })
-                                    .response;
+                                    .inner;
 
-                                if response.clicked() {
-                                    // println!("Clicked {} {} {}", col_idx, row_idx, &item);
+                                if response.clicked_by(PointerButton::Secondary) {
+                                    if let Some(pos) = pointer_pos {
+                                        self.context_menu_payload = Some(Location {
+                                            col: col_idx,
+                                            row: row_idx,
+                                            recipe_index: *item,
+                                        });
+                                        self.context_menu_pos = pos;
+                                    }
+                                    self.show_context_menu = true;
                                 }
                                 // Detect drops onto this item:
                                 if let (Some(pointer), Some(hovered_payload)) = (
@@ -135,6 +150,33 @@ impl Planner {
                                 }
                             }
                         });
+
+                        if self.show_context_menu {
+                            // Draw an `Area` on top (foreground) at the stored position
+                            egui::Area::new("my_context_menu_area".into())
+                                .order(egui::Order::Foreground)
+                                .fixed_pos(self.context_menu_pos)
+                                .show(ui.ctx(), |ui| {
+                                    egui::Frame::popup(ui.style()).show(ui, |ui| {
+                                        if ui.button(format!("{} Edit", ICON_MONITOR_COG)).clicked()
+                                        {
+                                        }
+                                        if ui.button(format!("{} Remove", ICON_TRASH_2)).clicked() {
+                                            if let Some(payload) = self.context_menu_payload {
+                                                meal_planner.daily_plan[payload.col]
+                                                    .remove(payload.row);
+                                                self.context_menu_payload = None;
+                                                self.show_context_menu = false;
+                                            }
+                                        }
+                                    });
+                                });
+
+                            // --- 4) Close the menu if the user clicks elsewhere ---
+                            if pointer_any_pressed && !pointer_is_over_area {
+                                self.show_context_menu = false;
+                            }
+                        }
 
                         if let Some(dragged_payload) = dropped_payload {
                             // The user dropped onto the column, but not on any one item.

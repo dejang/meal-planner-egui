@@ -1,5 +1,6 @@
 pub mod fonts;
 pub mod typography;
+pub mod widgets;
 use std::collections::BTreeMap;
 
 use egui::{Color32, FontFamily, FontId, TextStyle};
@@ -13,12 +14,12 @@ pub fn set_theme(ctx: &egui::Context, theme: Theme) {
     ctx.request_repaint();
 }
 
-pub fn icon() -> TextStyle {
-    TextStyle::Name("icons".into())
-}
-
 pub fn recipe_title() -> TextStyle {
     TextStyle::Name("recipe_title".into())
+}
+
+pub fn handwriting() -> TextStyle {
+    TextStyle::Name("handwriting".into())
 }
 
 // Helvetica
@@ -47,7 +48,7 @@ impl Theme {
         let text_styles: BTreeMap<TextStyle, FontId> = [
             (
                 TextStyle::Heading,
-                FontId::new(24.0, Name("inter_heading".into())),
+                FontId::new(21.0, Name("inter_heading".into())),
             ),
             (
                 TextStyle::Body,
@@ -59,10 +60,9 @@ impl Theme {
                 TextStyle::Small,
                 FontId::new(14.0, Name("inter_small".into())),
             ),
-            (icon(), FontId::new(16.0, Name("icons".into()))),
             (
                 recipe_title(),
-                FontId::new(28., Name("inter_heading".into())),
+                FontId::new(24., Name("inter_heading".into())),
             ),
             (
                 helvetica_heading(),
@@ -73,6 +73,7 @@ impl Theme {
                 helvetica_small(),
                 FontId::new(14., Name("helvetica".into())),
             ),
+            (handwriting(), FontId::new(38., Name("handwriting".into()))),
         ]
         .into();
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
@@ -97,7 +98,6 @@ impl Theme {
                 TextStyle::Small,
                 FontId::new(12.0, Name("inter_small".into())),
             ),
-            (icon(), FontId::new(16.0, Proportional)),
             (
                 recipe_title(),
                 FontId::new(26., Name("inter_heading".into())),
@@ -111,6 +111,7 @@ impl Theme {
                 helvetica_small(),
                 FontId::new(12., Name("helvetica".into())),
             ),
+            (handwriting(), FontId::new(18., Name("handwriting".into()))),
         ]
         .into();
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());

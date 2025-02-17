@@ -1,6 +1,6 @@
 use egui::{
     vec2, Color32, Frame, Id, Image, Layout, Margin, Pos2, RichText, Rounding, ScrollArea, Sense,
-    Shadow, TextEdit, Widget,
+    Shadow, Stroke, TextEdit, Widget,
 };
 
 use crate::{
@@ -88,11 +88,16 @@ impl GalleryItemDragPreview {
 pub struct GalleryItem<'a> {
     recipe: &'a Recipe,
     size: &'a (f32, f32),
+    selected: bool,
 }
 
 impl<'a> GalleryItem<'a> {
-    pub fn new(size: &'a (f32, f32), recipe: &'a Recipe) -> Self {
-        Self { recipe, size }
+    pub fn new(size: &'a (f32, f32), recipe: &'a Recipe, selected: bool) -> Self {
+        Self {
+            recipe,
+            size,
+            selected,
+        }
     }
 }
 
@@ -100,7 +105,7 @@ impl<'a> Widget for GalleryItem<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let (width, height) = &self.size;
         let height = percentage(*height, 90);
-        let frame = egui::Frame::none()
+        let mut frame = egui::Frame::none()
             .fill(ui.visuals().extreme_bg_color)
             .shadow(Shadow {
                 offset: vec2(0.0, 0.0),
@@ -115,6 +120,10 @@ impl<'a> Widget for GalleryItem<'a> {
                 top: 10.0,
                 bottom: 10.0,
             });
+
+        if self.selected {
+            frame = frame.stroke(Stroke::new(1.0, ui.visuals().window_stroke.color));
+        }
         let response = frame
             .show(ui, |ui| {
                 // ui.set_height(height);
@@ -131,8 +140,8 @@ impl<'a> Widget for GalleryItem<'a> {
                         ui.label(RichText::new(&self.recipe.title).text_style(recipe_title()));
                     });
                     ui.scope(|ui| {
-                        let image =
-                            Image::new(&self.recipe.image_url).rounding(Rounding::same(10.))
+                        let image = Image::new(&self.recipe.image_url)
+                            .rounding(Rounding::same(10.))
                             .max_height(percentage(height, 65))
                             .maintain_aspect_ratio(true);
 
@@ -148,11 +157,11 @@ impl<'a> Widget for GalleryItem<'a> {
                                 "Calories: {}",
                                 &self.recipe.macros.calories / (self.recipe.servings as i32)
                             )));
-    
+
                             let layout = Layout::right_to_left(egui::Align::Center);
                             ui.with_layout(layout, |ui| {
                                 ui.label(hb(&format!("Servings: {}", &self.recipe.servings)));
-                            });    
+                            });
                         });
                         ui.separator();
                     });
@@ -174,11 +183,13 @@ pub struct RecipeGallery {
     nutrients_view: AnalysisResponseView,
     item_dragging: bool,
     drag_image: Option<Image<'static>>,
+    show_details: bool,
 }
 
 impl RecipeGallery {
-    fn detail_panel(&mut self, ui: &mut egui::Ui, recipe: &Recipe) {
+    fn detail_panel(&mut self, ui: &mut egui::Ui, recipe: &Recipe) -> bool {
         let window_width = 500.;
+        let mut edit_clicked = false;
 
         let frame = Frame::default()
             .fill(ui.visuals().panel_fill)
@@ -215,14 +226,35 @@ impl RecipeGallery {
                             return;
                         }
 
-                        ui.heading(&recipe.title);
+                        ui.horizontal(|ui| {
+                            ui.add_sized(
+                                vec2(percentage(ui.available_width(), 90), 40.),
+                                |ui: &mut egui::Ui| {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.heading(&recipe.title)
+                                    }).response
+                                },
+                            );
+                            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                                if ui.button("Edit").clicked() {
+                                    edit_clicked = true;
+                                }
+                            });
+                        });
+
                         ui.add_space(10.);
 
                         ui.separator();
                         ui.add(Ingredients::new(recipe));
                         ui.separator();
                         ui.heading("Cooking Instructions");
-                        ui.label(&recipe.instructions);
+                        let _ = &recipe.instructions.split("\n").for_each(|line| {
+                            let line = line.trim();
+                            if (!line.is_empty()) {
+                                ui.label(line);
+                            }
+                            ui.add_space(5.);
+                        });
 
                         ui.separator();
                         self.nutrients_view.ui(
@@ -235,15 +267,26 @@ impl RecipeGallery {
                 });
             });
 
-        ui.input(|i| {
-            if i.key_pressed(egui::Key::Escape) {
-                self.current_recipe = None;
-                self.nutrients_view = AnalysisResponseView::default();
-            }
-        });
+        if self.show_details {
+            ui.input(|i| {
+                if i.key_pressed(egui::Key::Escape) {
+                    self.show_details = false;
+                    self.current_recipe = None;
+                    self.nutrients_view = AnalysisResponseView::default();
+                }
+            });
+        }
+        edit_clicked
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &MealPlanner) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &mut MealPlanner) -> Option<usize> {
+        let mut edit_recipe = None;
+        ui.input(|input_state| {
+            if input_state.key_pressed(egui::Key::Delete) && self.current_recipe.is_some() {
+                meal_planner.remove_recipe(self.current_recipe.unwrap());
+                self.current_recipe = None;
+            }
+        });
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.vertical(|ui| {
                 // search area
@@ -273,6 +316,7 @@ impl RecipeGallery {
                             &meal_planner.search_recipe(&self.search_query)
                         };
                         let size = (item_width, item_height);
+
                         for (i, recipe) in recipes.iter().enumerate() {
                             let payload = Location {
                                 col: 0,
@@ -280,9 +324,15 @@ impl RecipeGallery {
                                 recipe_index: i,
                             };
 
-                            let item_response = ui.add(GalleryItem::new(&size, recipe));
+                            let is_selected = match self.current_recipe {
+                                Some(item_index) => i == item_index,
+                                None => false,
+                            };
+                            let item_response =
+                                ui.add(GalleryItem::new(&size, recipe, is_selected));
                             if item_response.clicked() {
                                 self.current_recipe.replace(i);
+                                self.show_details = true;
                             }
 
                             if item_response.drag_started() {
@@ -307,8 +357,13 @@ impl RecipeGallery {
 
             if let Some(idx) = self.current_recipe {
                 let recipe = meal_planner.recipies.get(idx).unwrap();
-                self.detail_panel(ui, recipe);
+                let edit_clicked = self.detail_panel(ui, recipe);
+                if (edit_clicked) {
+                    edit_recipe.replace(idx);
+                }
             }
         });
+
+        edit_recipe
     }
 }

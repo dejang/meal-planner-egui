@@ -46,6 +46,8 @@ pub struct MealPlannerApp {
     #[serde(skip)]
     pub editor_visible: bool,
     #[serde(skip)]
+    editor_recipe_index: Option<usize>,
+    #[serde(skip)]
     pub shopping_list_visible: bool,
     #[serde(skip)]
     pub settings_window_visible: bool,
@@ -65,6 +67,7 @@ impl Default for MealPlannerApp {
         Self {
             planner: Planner::default(),
             editor_visible: false,
+            editor_recipe_index: None,
             shopping_list_visible: false,
             settings_window_visible: false,
             shopping_list: ShoppingList::default(),
@@ -257,7 +260,6 @@ impl eframe::App for MealPlannerApp {
 
                 self.meal_planner.recipe = Recipe::default();
                 self.download = Arc::new(Mutex::new(Download::None));
-                // self.browser.edit_recipe_idx = EditState::Empty;
             }
         }
 
@@ -325,9 +327,14 @@ impl eframe::App for MealPlannerApp {
             });
 
         // Central panel for recipe browser
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.recipe_gallery.ui(ui, &self.meal_planner);
-        });
+        let edit_recipe = egui::CentralPanel::default().show(ctx, |ui| {
+            self.recipe_gallery.ui(ui, &mut self.meal_planner)
+        }).inner;
+        
+        if edit_recipe.is_some() {
+            self.editor_recipe_index = edit_recipe;
+            self.editor_visible = true;
+        }
 
         // Recipe Editor window
         let response = egui::Window::new("Recipe Editor")
@@ -337,10 +344,18 @@ impl eframe::App for MealPlannerApp {
             .default_height(600.)
             .default_width(percentage(ctx.screen_rect().width(), 80))
             .show(&ctx.clone(), |ui| {
-                Editor::new().ui(ui, &mut self.meal_planner.recipe)
+                if let Some(idx) = self.editor_recipe_index {
+                    Editor::new().ui(ui, &mut self.meal_planner.recipies.get_mut(idx).unwrap())
+                } else {
+                    Editor::new().ui(ui, &mut self.meal_planner.recipe)
+                }
             });
+        if response.is_none() {
+            self.editor_recipe_index = None;
+        }
+            
         if let Some(inner) = response {
-            if let Some(response) = inner.inner {
+            if let Some(response) = inner.inner.unwrap() {
                 if response.lost_focus() {
                     self.request(ctx);
                 }

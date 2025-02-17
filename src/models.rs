@@ -111,9 +111,7 @@ pub struct AnalysisResponse {
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
-pub struct AnalysisResponseView {
-    show_nutrients: bool,
-}
+pub struct AnalysisResponseView;
 
 impl AnalysisResponseView {
     pub fn ui(
@@ -125,10 +123,23 @@ impl AnalysisResponseView {
     ) {
         response.ui(ui, servings, servings_label);
         ui.separator();
+        let id = format!("analysis_response_view_{}", ui.unique_id().value());
+        
+        let mut show_nutrients = ui.data_mut(|data| {
+            if let Some(show) = data.get_temp::<bool>(id.clone().into()) {
+                show
+            } else {
+                false
+            }
+        });
+
         if ui.button("Nutrients").clicked() {
-            self.show_nutrients = !self.show_nutrients;
+            show_nutrients = !show_nutrients;
+            ui.data_mut(|data| {
+                data.insert_temp(id.into(), show_nutrients);
+            });
         }
-        if self.show_nutrients {
+        if show_nutrients {
             let default_nutrient = Nutrient::default();
             for v in VITAMINS {
                 let nutrient = response.totalDaily.get(v).unwrap_or(&default_nutrient);
@@ -166,7 +177,7 @@ impl AnalysisResponse {
                 self.row(ui, "Calories", "", &calories_per_serving.to_string(), &[]);
                 ui.separator();
                 ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                    ui.label(hb("% Daily Value*"));
+                    ui.label(hs("% Daily Value*"));
                 });
 
                 ui.separator();
