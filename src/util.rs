@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::{helvetica_body, helvetica_heading, helvetica_small};
+use crate::{helvetica_body, helvetica_heading, helvetica_small, smallish};
 
 pub const DEFAULT_PADDING: f32 = 10.;
 
@@ -18,4 +18,8 @@ pub fn hb(str: &str) -> RichText {
 
 pub fn hs(str: &str) -> RichText {
     RichText::new(str).text_style(helvetica_small())
+}
+
+pub fn ls(str: &str) -> RichText {
+    RichText::new(str).text_style(smallish())
 }

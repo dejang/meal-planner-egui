@@ -169,7 +169,7 @@ impl MealPlannerApp {
     fn export_data(&mut self) {
         use web_sys::wasm_bindgen::JsCast;
 
-        let content = serde_json::to_string_pretty(&self).unwrap();
+        let content = serde_json::to_string(&self).unwrap();
         let win = web_sys::window().unwrap();
         let doc = win.document().unwrap();
 
@@ -238,8 +238,14 @@ impl eframe::App for MealPlannerApp {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
                 if !lock.0.is_empty() {
                     let content = std::fs::read_to_string(&lock.0).expect("Unable to read");
-                    self.meal_planner
-                        .load_from_bytes(BASE64_STANDARD.decode(content).unwrap().as_slice());
+                    let decoded = BASE64_STANDARD.decode(content).unwrap();
+                    if self
+                        .meal_planner
+                        .from_json(std::str::from_utf8(decoded.as_slice()).unwrap())
+                    {
+                        println!("Successful");
+                    }
+
                     lock.0 = String::new();
                 }
 
@@ -327,10 +333,10 @@ impl eframe::App for MealPlannerApp {
             });
 
         // Central panel for recipe browser
-        let edit_recipe = egui::CentralPanel::default().show(ctx, |ui| {
-            self.recipe_gallery.ui(ui, &mut self.meal_planner)
-        }).inner;
-        
+        let edit_recipe = egui::CentralPanel::default()
+            .show(ctx, |ui| self.recipe_gallery.ui(ui, &mut self.meal_planner))
+            .inner;
+
         if edit_recipe.is_some() {
             self.editor_recipe_index = edit_recipe;
             self.editor_visible = true;
@@ -353,7 +359,7 @@ impl eframe::App for MealPlannerApp {
         if response.is_none() {
             self.editor_recipe_index = None;
         }
-            
+
         if let Some(inner) = response {
             if let Some(response) = inner.inner.unwrap() {
                 if response.lost_focus() {

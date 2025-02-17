@@ -42,6 +42,9 @@ impl<'a> Widget for Ingredients<'a> {
         ui.vertical(|ui| {
             for ingredient in &self.recipe.macros.ingredients {
                 ui.horizontal(|ui| {
+                    if ingredient.parsed.is_none() {
+                        return;
+                    }
                     let detail = ingredient.parsed.as_ref().unwrap().get(0).unwrap();
                     ui.label(&detail.food);
 
@@ -321,7 +324,7 @@ impl RecipeGallery {
                             let payload = Location {
                                 col: 0,
                                 row: usize::MAX,
-                                recipe_index: i,
+                                recipe_index: if let Some(id) = recipe.id { id} else { i },
                             };
 
                             let is_selected = match self.current_recipe {
@@ -331,7 +334,8 @@ impl RecipeGallery {
                             let item_response =
                                 ui.add(GalleryItem::new(&size, recipe, is_selected));
                             if item_response.clicked() {
-                                self.current_recipe.replace(i);
+                                let idx = if let Some(id) = recipe.id { id} else { i };
+                                self.current_recipe.replace(idx);
                                 self.show_details = true;
                             }
 

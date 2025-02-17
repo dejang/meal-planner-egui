@@ -3,19 +3,16 @@ use serde::{Deserialize, Serialize};
 use crate::models::Recipe;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct OldMealPlanner {
-    api_key: Option<String>,
-    app_id: Option<String>,
-    recipies: Vec<Recipe>,
-    recipe: Recipe,
-    daily_plan: Vec<Vec<usize>>,
+struct IncomingJSON {
+    meal_planner: MealPlanner
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MealPlanner {
+    #[serde(skip)]
     pub api_key: String,
+    #[serde(skip)]
     pub app_id: String,
-
     pub recipies: Vec<Recipe>,
     pub recipe: Recipe,
     pub daily_plan: Vec<Vec<usize>>,
@@ -71,6 +68,21 @@ impl MealPlanner {
         }
     }
 
+    pub fn from_json(&mut self, json: &str) -> bool {
+        let result = serde_json::from_str::<IncomingJSON>(json);
+        if let Ok(state) = result {
+            self.recipe = state.meal_planner.recipe;
+            self.recipies = state.meal_planner.recipies;
+            self.daily_plan = state.meal_planner.daily_plan;
+            self.api_key = state.meal_planner.api_key;
+            self.app_id = state.meal_planner.app_id;
+            true
+        } else {
+            println!("{:?}", result.err().unwrap());
+            false
+        }
+    }
+
     pub fn is_daily_plan_empty(&self) -> bool {
         let mut is_empty = 0;
         for day in &self.daily_plan {
@@ -115,11 +127,16 @@ impl MealPlanner {
     }
 
     pub fn search_recipe(&self, arg: &str) -> Vec<Recipe> {
-        self.recipies
-            .iter()
-            .filter(|recipe| recipe.title.to_lowercase().contains(&arg.to_lowercase()))
-            .map(|r| r.clone())
-            .collect::<Vec<Recipe>>()
+        let mut result = vec![];
+        for (i, recipe) in self.recipies.iter().enumerate() {
+            if recipe.title.to_lowercase().contains(&arg.to_lowercase()) {
+                let mut clone = recipe.clone();
+                clone.id = Some(i);
+                result.push(clone);
+            }
+        }
+
+        result
     }
 }
 

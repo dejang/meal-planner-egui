@@ -4,7 +4,7 @@ use crate::{
     meal_planner::MealPlanner,
     models::{AnalysisResponseView, Recipe},
     typography::icons::{ICON_CLIPBOARD_PASTE, ICON_MONITOR_COG, ICON_TRASH_2},
-    util::hb,
+    util::ls,
 };
 
 /// What is being dragged.
@@ -88,11 +88,14 @@ impl Planner {
                                     .dnd_drag_source(item_id, item_location, |ui| {
                                         Frame::default()
                                             .show(ui, |ui| {
-                                                ui.label(hb(&meal_planner
-                                                    .recipies
-                                                    .get(*item)
-                                                    .unwrap()
-                                                    .to_string()));
+                                                ui.label(
+                                                    ls(&meal_planner
+                                                        .recipies
+                                                        .get(*item)
+                                                        .unwrap()
+                                                        .to_string())
+                                                    .size(16.),
+                                                );
                                                 ui.separator();
                                                 ui.interact(
                                                     ui.max_rect(),

@@ -322,6 +322,10 @@ impl AnalysisResponse {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Recipe {
+    // the id field is ever changing, it's not a static id
+    // mainly used in search situations, to retarget a recipe
+    // to its position in the global recipe list
+    pub id: Option<usize>,
     pub title: String,
     pub ingredients: String,
     pub instructions: String,
@@ -339,6 +343,7 @@ impl Default for Recipe {
             image_url: String::new(),
             macros: AnalysisResponse::default(),
             servings: 1,
+            id: None,
         }
     }
 }

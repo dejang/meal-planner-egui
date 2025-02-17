@@ -22,6 +22,10 @@ pub fn handwriting() -> TextStyle {
     TextStyle::Name("handwriting".into())
 }
 
+pub fn smallish() -> TextStyle {
+    TextStyle::Name("inter_small".into())
+}
+
 // Helvetica
 pub fn helvetica_heading() -> TextStyle {
     TextStyle::Name("helvetica_bold".into())
@@ -60,6 +64,7 @@ impl Theme {
                 TextStyle::Small,
                 FontId::new(14.0, Name("inter_small".into())),
             ),
+            (smallish(), FontId::new(16.0, Name("inter_small".into()))),
             (
                 recipe_title(),
                 FontId::new(24., Name("inter_heading".into())),
