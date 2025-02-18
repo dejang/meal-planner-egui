@@ -68,7 +68,7 @@ impl Planner {
                     });
                 });
                 ScrollArea::new([false, true])
-                    .id_source(format!("scroll_area{}", col_idx))
+                    .id_salt(format!("scroll_area{}", col_idx))
                     .show(ui, |ui| {
                         let pointer_pos = ui.ctx().pointer_latest_pos();
                         let pointer_any_pressed = ui.ctx().input(|i| i.pointer.any_pressed());

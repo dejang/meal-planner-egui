@@ -12,21 +12,6 @@ use crate::{
     util::{hb, percentage},
 };
 
-pub struct Alergens<'a> {
-    recipe: &'a Recipe,
-}
-
-impl<'a> Alergens<'a> {
-    pub fn new(recipe: &'a Recipe) -> Self {
-        Self { recipe }
-    }
-}
-
-impl<'a> Widget for Alergens<'a> {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        ui.label(format!("{:?}", &self.recipe.macros.healthLabels))
-    }
-}
 
 pub struct Ingredients<'a> {
     recipe: &'a Recipe,
@@ -254,7 +239,7 @@ impl RecipeGallery {
                         ui.heading("Cooking Instructions");
                         let _ = &recipe.instructions.split("\n").for_each(|line| {
                             let line = line.trim();
-                            if (!line.is_empty()) {
+                            if !line.is_empty() {
                                 ui.label(line);
                             }
                             ui.add_space(5.);

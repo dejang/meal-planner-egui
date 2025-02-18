@@ -74,6 +74,15 @@ impl MealPlanner {
             false
         }
     }
+    
+    #[cfg(target_arch = "wasm32")]
+    pub fn is_daily_plan_empty(&self) -> bool {
+        let mut is_empty = 0;
+        for day in &self.daily_plan {
+            is_empty += day.len();
+        }
+        is_empty == 0
+    }
 
     pub fn is_api_configured(&self) -> bool {
         !self.api_key.is_empty() && !self.app_id.is_empty()

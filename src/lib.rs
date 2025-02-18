@@ -1,7 +1,6 @@
-#![warn(clippy::all, rust_2018_idioms)]
+#![warn(clippy::all)]
 
 mod app;
-mod icons;
 mod meal_planner;
 mod models;
 mod planner;

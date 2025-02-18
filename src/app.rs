@@ -109,7 +109,7 @@ impl MealPlannerApp {
             let previous_state: MealPlannerApp =
                 eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
             if previous_state.meal_planner.is_daily_plan_empty()
-                && previous_state.meal_planner.recipies.len() == 0
+                && previous_state.meal_planner.get_recipes().len() == 0
             {
                 return default_state;
             }
@@ -182,6 +182,7 @@ impl eframe::App for MealPlannerApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.set_visuals(egui::Visuals::light());
         self.meal_planner.poll_analysis();
 
         {
@@ -246,7 +247,8 @@ impl eframe::App for MealPlannerApp {
                     self.settings_window_visible = true;
                 }
 
-                egui::widgets::global_dark_light_mode_buttons(ui);
+                // TODO: when dark theme is looking nice, re-enable
+                // egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
 

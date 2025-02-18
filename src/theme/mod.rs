@@ -103,6 +103,7 @@ impl Theme {
                 TextStyle::Small,
                 FontId::new(12.0, Name("inter_small".into())),
             ),
+            (smallish(), FontId::new(16.0, Name("inter_small".into()))),
             (
                 recipe_title(),
                 FontId::new(26., Name("inter_heading".into())),
