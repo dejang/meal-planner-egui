@@ -10,20 +10,11 @@ use uuid::Uuid;
 use crate::models::{AnalysisRequest, AnalysisResponse, Recipe};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RecipeWithoutId {
-    pub title: String,
-    pub ingredients: String,
-    pub instructions: String,
-    pub image_url: String,
-    pub macros: AnalysisResponse,
-    pub servings: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 struct IncomingState {
-    pub recipies: Vec<RecipeWithoutId>,
-    pub recipe: RecipeWithoutId,
-    pub daily_plan: Vec<Vec<usize>>,
+    pub api_key: String,
+    pub app_id: String,
+    pub recipies: HashMap<Uuid, Recipe>,
+    pub daily_plan: Vec<Vec<Uuid>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,71 +61,18 @@ impl Default for MealPlanner {
 }
 
 impl MealPlanner {
-    pub fn connect(self, api_key: &str, app_id: &str) -> Self {
-        Self {
-            api_key: api_key.to_string(),
-            app_id: app_id.to_string(),
-            recipies: self.recipies,
-            daily_plan: self.daily_plan,
-            ..Default::default()
-        }
-    }
-
-    pub fn load_from_bytes(&mut self, json: &[u8]) {
-        // #[derive(Deserialize)]
-        // struct SavedState {
-        //     api_key: Option<String>,
-        //     app_id: Option<String>,
-        //     recipies: Vec<Recipe>,
-        //     recipe: Recipe,
-        //     daily_plan: Vec<Vec<usize>>,
-        // }
-
-        // if let Ok(saved) = serde_json::from_slice::<SavedState>(json) {
-        //     self.recipies = from_recipes_vec(saved.recipies);
-        //     self.daily_plan = saved.daily_plan;
-        //     self.api_key = saved.api_key.unwrap_or_default();
-        //     self.app_id = saved.app_id.unwrap_or_default();
-        // }
-    }
-
     pub fn from_json(&mut self, json: &str) -> bool {
         let result = serde_json::from_str::<IncomingJSON>(json);
         if let Ok(state) = result {
-            self.recipies = from_recipes_vec(&state.meal_planner.recipies);
-            // TODO: update this to read the serialized plan
-            self.daily_plan = state.meal_planner.daily_plan.iter().map(|day| {
-                let mut uuid_vec = Vec::with_capacity(day.len());
-                for index in day {
-                    let recipe_without_id = state.meal_planner.recipies.get(*index).unwrap();
-                    let recipe = *self.search_recipe(&recipe_without_id.title).get(0).unwrap();
-                    uuid_vec.push(recipe.id);
-                    
-                }
-                uuid_vec
-            }).collect();
+            self.api_key = state.meal_planner.api_key;
+            self.app_id = state.meal_planner.app_id;
+            self.recipies = state.meal_planner.recipies;
+            self.daily_plan = state.meal_planner.daily_plan;
             true
         } else {
             println!("{:?}", result.err().unwrap());
             false
         }
-    }
-
-    pub fn is_daily_plan_empty(&self) -> bool {
-        let mut is_empty = 0;
-        for day in &self.daily_plan {
-            is_empty += day.len();
-        }
-
-        is_empty == 0
-    }
-
-    pub fn get_api_key(&self) -> &str {
-        &self.api_key
-    }
-
-    pub fn get_app_id(&self) -> &str {
-        &self.app_id
     }
 
     pub fn is_api_configured(&self) -> bool {
@@ -287,64 +225,5 @@ impl MealPlanner {
                 }
             },
         );
-    }
-}
-
-fn from_recipes_vec(recipes: &Vec<RecipeWithoutId>) -> HashMap<Uuid, Recipe> {
-    recipes
-        .iter()
-        .map(|f| {
-            let id = Uuid::new_v4();
-            let recipe = Recipe {
-                id,
-                title: f.title.to_owned(),
-                ingredients: f.ingredients.to_owned(),
-                instructions: f.instructions.to_owned(),
-                image_url: f.image_url.to_owned(),
-                macros: f.macros.to_owned(),
-                servings: f.servings,
-            };
-            (id, recipe)
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::models::Recipe;
-
-    use super::MealPlanner;
-
-    #[test]
-    fn is_daily_plan_empty() {
-        // TODO: re-enable test
-        // let app = MealPlanner::default();
-        // assert!(app.is_daily_plan_empty());
-
-        // let app = MealPlanner::new(&[Recipe::default()], &[vec![0]]);
-        // assert!(!app.is_daily_plan_empty());
-    }
-
-    #[test]
-    fn is_api_configured() {
-        let app = MealPlanner::default();
-        assert!(!app.is_api_configured());
-
-        let app = MealPlanner::default().connect("foo", "");
-        assert!(!app.is_api_configured());
-
-        let app = MealPlanner::default().connect("", "foo");
-        assert!(!app.is_api_configured());
-
-        let app = MealPlanner::default().connect("foo", "bar");
-        assert!(app.is_api_configured());
-    }
-
-    #[test]
-    fn duplace_day() {
-        // TODO: re-enable test
-        // let mut app = MealPlanner::new(&[Recipe::default()], &[vec![0], vec![]]);
-        // app.duplicate_day(0, 1);
-        // assert_eq!(**app.daily_plan.get(1).unwrap(), vec![0]);
     }
 }

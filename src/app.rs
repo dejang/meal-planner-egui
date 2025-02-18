@@ -200,8 +200,9 @@ impl eframe::App for MealPlannerApp {
                 }
 
                 if !lock.1.is_empty() {
+                    let decoded = BASE64_STANDARD.decode(&lock.1).unwrap();
                     self.meal_planner
-                        .load_from_bytes(BASE64_STANDARD.decode(&lock.1).unwrap().as_slice());
+                        .from_json(std::str::from_utf8(decoded.as_slice()).unwrap());
                     lock.1 = vec![];
                 }
             }
