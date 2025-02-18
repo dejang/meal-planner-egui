@@ -1,18 +1,19 @@
 use std::collections::HashMap;
 
 use egui_extras::{Column, TableBuilder};
+use uuid::Uuid;
 
-use crate::models::Recipe;
+use crate::meal_planner::MealPlanner;
 
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ShoppingList {}
 
 impl ShoppingList {
-    fn shopping_list(&self, plan: &[Vec<usize>], recipe_list: &[Recipe]) -> Vec<(String, f32)> {
+    fn shopping_list(&self, plan: &[Vec<Uuid>], meal_planner: &MealPlanner) -> Vec<(String, f32)> {
         let mut list = HashMap::new();
         plan.iter().for_each(|day| {
             for r_id in day {
-                let recipe = recipe_list.get(*r_id).unwrap();
+                let recipe = meal_planner.get_recipe_by_id(r_id).unwrap();
                 for ingr in &recipe.macros.ingredients {
                     if ingr.parsed.is_none() {
                         continue;
@@ -40,8 +41,9 @@ impl ShoppingList {
             .collect::<Vec<(String, f32)>>()
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, plan: &[Vec<usize>], recipies: &[Recipe]) {
-        let list = self.shopping_list(plan, recipies);
+    pub fn show(&self, ui: &mut egui::Ui, meal_planner: &MealPlanner) {
+        let plan = &meal_planner.get_daily_plan(); 
+        let list = self.shopping_list(plan, meal_planner);
 
         TableBuilder::new(ui)
             .striped(true)

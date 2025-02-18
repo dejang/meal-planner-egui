@@ -1,4 +1,5 @@
 use egui::*;
+use uuid::Uuid;
 
 use crate::{
     meal_planner::MealPlanner,
@@ -12,7 +13,7 @@ use crate::{
 pub struct Location {
     pub col: usize,
     pub row: usize,
-    pub recipe_index: usize,
+    pub recipe_id: Uuid,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -41,8 +42,8 @@ impl Planner {
         // If there is a drop, store the location of the item being dragged, and the destination for the drop.
         let mut from = None;
         let mut to = None;
-        ui.columns(meal_planner.daily_plan.len(), |uis| {
-            for (col_idx, column) in meal_planner.daily_plan.clone().into_iter().enumerate() {
+        ui.columns(meal_planner.get_daily_plan().len(), |uis| {
+            for (col_idx, column) in meal_planner.get_daily_plan().clone().iter().enumerate() {
                 let ui = &mut uis[col_idx];
                 ui.horizontal(|ui| {
                     ui.heading(format!("Day {}", col_idx + 1));
@@ -52,7 +53,7 @@ impl Planner {
                             ui.label("Clear meals");
                         };
                         if ui.add(clear_btn).on_hover_ui(tooltip_ui).clicked() {
-                            meal_planner.daily_plan.get_mut(col_idx).unwrap().clear();
+                            meal_planner.clear_planner_day(col_idx);
                         };
 
                         if col_idx > 0 {
@@ -77,29 +78,29 @@ impl Planner {
 
                         let (_, dropped_payload) = ui.dnd_drop_zone::<Location, ()>(frame, |ui| {
                             ui.set_min_size(vec2(ui.available_width(), 100.0));
-                            for (row_idx, item) in column.iter().enumerate() {
-                                let item_id = Id::new(("my_drag_and_drop_demo", col_idx, row_idx));
+                            for (row_idx, recipe_id) in column.iter().enumerate() {
+                                let ui_item_id =
+                                    Id::new(("my_drag_and_drop_demo", col_idx, row_idx));
                                 let item_location = Location {
                                     col: col_idx,
                                     row: row_idx,
-                                    recipe_index: *item,
+                                    recipe_id: *recipe_id,
                                 };
                                 let response = ui
-                                    .dnd_drag_source(item_id, item_location, |ui| {
+                                    .dnd_drag_source(ui_item_id, item_location, |ui| {
                                         Frame::default()
                                             .show(ui, |ui| {
                                                 ui.label(
                                                     ls(&meal_planner
-                                                        .recipies
-                                                        .get(*item)
+                                                        .get_recipe_by_id(recipe_id)
                                                         .unwrap()
-                                                        .to_string())
+                                                        .title)
                                                     .size(16.),
                                                 );
                                                 ui.separator();
                                                 ui.interact(
                                                     ui.max_rect(),
-                                                    item_id,
+                                                    ui_item_id,
                                                     Sense::click_and_drag(),
                                                 )
                                             })
@@ -112,7 +113,7 @@ impl Planner {
                                         self.context_menu_payload = Some(Location {
                                             col: col_idx,
                                             row: row_idx,
-                                            recipe_index: *item,
+                                            recipe_id: *recipe_id,
                                         });
                                         self.context_menu_pos = pos;
                                     }
@@ -147,7 +148,7 @@ impl Planner {
                                         to = Some(Location {
                                             col: col_idx,
                                             row: insert_row_idx,
-                                            recipe_index: *item,
+                                            recipe_id: *recipe_id,
                                         });
                                     }
                                 }
@@ -166,8 +167,10 @@ impl Planner {
                                         }
                                         if ui.button(format!("{} Remove", ICON_TRASH_2)).clicked() {
                                             if let Some(payload) = self.context_menu_payload {
-                                                meal_planner.daily_plan[payload.col]
-                                                    .remove(payload.row);
+                                                meal_planner.remove_planner_recipe(
+                                                    payload.col,
+                                                    payload.row,
+                                                );
                                                 self.context_menu_payload = None;
                                                 self.show_context_menu = false;
                                             }
@@ -183,19 +186,22 @@ impl Planner {
 
                         if let Some(dragged_payload) = dropped_payload {
                             // The user dropped onto the column, but not on any one item.
-                            let recipe_index = dragged_payload.recipe_index;
+                            let recipe_id = dragged_payload.recipe_id;
                             from = Some(dragged_payload);
                             to = Some(Location {
                                 col: col_idx,
                                 row: usize::MAX, // Inset last
-                                recipe_index,
+                                recipe_id,
                             });
                         }
 
                         // footer
                         let mut total_daily = Recipe::default();
-                        for recipe_index in column {
-                            total_daily = meal_planner.recipies[recipe_index].merge(&total_daily);
+                        for recipe_id in column {
+                            total_daily = meal_planner
+                                .get_recipe_by_id(recipe_id)
+                                .unwrap()
+                                .merge(&total_daily);
                         }
 
                         self.collapsible_nutrients[col_idx].ui(
@@ -215,15 +221,13 @@ impl Planner {
                 to.row -= (from.row < to.row) as usize;
             }
 
-            let item = if from.row == usize::MAX {
-                from.recipe_index
+            let recipe_id = if from.row == usize::MAX {
+                from.recipe_id
             } else {
-                meal_planner.daily_plan[from.col].remove(from.row)
+                meal_planner.remove_planner_recipe(from.col,from.row)
             };
 
-            let column = &mut meal_planner.daily_plan[to.col];
-            to.row = to.row.min(column.len());
-            column.insert(to.row, item);
+            meal_planner.add_recipe_to_planner(to.col, to.row, recipe_id);
         }
     }
     // ui.interact(ui.clip_rect(), ui.id(), Sense::click_and_drag())

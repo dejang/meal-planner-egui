@@ -5,13 +5,12 @@ use std::{
 };
 
 use base64::prelude::*;
-use ehttp::Request;
-use log::error;
 use rfd::FileHandle;
+use uuid::Uuid;
 
 use crate::{
     meal_planner::MealPlanner,
-    models::{AnalysisRequest, AnalysisResponse, Recipe},
+    models::AnalysisResponse,
     planner::Planner,
     recipe_editor::Editor,
     recipe_gallery::RecipeGallery,
@@ -46,7 +45,7 @@ pub struct MealPlannerApp {
     #[serde(skip)]
     pub editor_visible: bool,
     #[serde(skip)]
-    editor_recipe_index: Option<usize>,
+    editor_recipe_id: Option<Uuid>,
     #[serde(skip)]
     pub shopping_list_visible: bool,
     #[serde(skip)]
@@ -67,7 +66,7 @@ impl Default for MealPlannerApp {
         Self {
             planner: Planner::default(),
             editor_visible: false,
-            editor_recipe_index: None,
+            editor_recipe_id: None,
             shopping_list_visible: false,
             settings_window_visible: false,
             shopping_list: ShoppingList::default(),
@@ -118,42 +117,6 @@ impl MealPlannerApp {
         }
 
         Default::default()
-    }
-
-    fn request(&mut self, ctx: &egui::Context) {
-        let analysis_request = AnalysisRequest {
-            ingr: self.meal_planner.recipe.ingredients_to_vec(),
-        };
-
-        let url = format!(
-            "https://api.edamam.com/api/nutrition-details?app_id={}&app_key={}",
-            self.meal_planner.get_app_id(),
-            self.meal_planner.get_api_key()
-        );
-
-        let ctx = ctx.clone();
-        let download_store = self.download.clone();
-        *download_store.lock().unwrap() = Download::InProgress;
-        ehttp::fetch(
-            Request::json(url, &analysis_request).unwrap(),
-            move |response| {
-                if let Ok(response) = response {
-                    let raw_text = response.text().unwrap();
-                    if response.status == 200 {
-                        let analysis = serde_json::from_str(raw_text).unwrap();
-                        *download_store.lock().unwrap() = Download::Done(Ok(analysis));
-                    } else {
-                        *download_store.lock().unwrap() = Download::Done(Err(raw_text.to_string()));
-                    }
-                    ctx.request_repaint(); // Wake up UI thread
-                } else {
-                    let network_error = response.err().unwrap();
-                    error!("Network Error: {}", network_error);
-                    *download_store.lock().unwrap() = Download::Done(Err(network_error));
-                    ctx.request_repaint(); // Wake up UI thread
-                }
-            },
-        );
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -219,20 +182,7 @@ impl eframe::App for MealPlannerApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        {
-            // process any incoming download for the currently editing recipe
-            let download = self.download.lock().unwrap();
-
-            match download.clone() {
-                Download::None => {}
-                Download::InProgress => {}
-                Download::Done(result) => {
-                    if let Ok(analysis) = result {
-                        self.meal_planner.recipe.macros = analysis;
-                    }
-                }
-            };
-        }
+        self.meal_planner.poll_analysis();
 
         {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
@@ -257,18 +207,6 @@ impl eframe::App for MealPlannerApp {
             }
         }
 
-        {
-            // save our recipe if we closed the editor and it's been given a title
-            if !self.editor_visible && !self.meal_planner.recipe.title.is_empty() {
-                self.meal_planner
-                    .recipies
-                    .push(self.meal_planner.recipe.clone());
-
-                self.meal_planner.recipe = Recipe::default();
-                self.download = Arc::new(Mutex::new(Download::None));
-            }
-        }
-
         // Fixed top menu bar
         egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -284,7 +222,10 @@ impl eframe::App for MealPlannerApp {
                 }
 
                 if ui.button("New Recipe").clicked() {
-                    self.editor_visible = true;
+                    if let Some(draft) = self.meal_planner.create_draft_recipe() {
+                        self.editor_recipe_id = Some(draft.id);
+                        self.editor_visible = true;
+                    }
                 }
 
                 if ui.button("Import Data").clicked() {
@@ -338,7 +279,7 @@ impl eframe::App for MealPlannerApp {
             .inner;
 
         if edit_recipe.is_some() {
-            self.editor_recipe_index = edit_recipe;
+            self.editor_recipe_id = edit_recipe;
             self.editor_visible = true;
         }
 
@@ -350,20 +291,28 @@ impl eframe::App for MealPlannerApp {
             .default_height(600.)
             .default_width(percentage(ctx.screen_rect().width(), 80))
             .show(&ctx.clone(), |ui| {
-                if let Some(idx) = self.editor_recipe_index {
-                    Editor::new().ui(ui, &mut self.meal_planner.recipies.get_mut(idx).unwrap())
+                if let Some(id) = self.editor_recipe_id {
+                    Editor::new().ui(ui, self.meal_planner.get_recipe_by_id_mut(&id).unwrap())
                 } else {
-                    Editor::new().ui(ui, &mut self.meal_planner.recipe)
+                    None
                 }
             });
+
         if response.is_none() {
-            self.editor_recipe_index = None;
+            self.editor_recipe_id = None;
+            self.meal_planner.delete_draft_recipe();
         }
 
         if let Some(inner) = response {
+            if inner.response.clicked() {
+                println!("clicked");
+            }
             if let Some(response) = inner.inner.unwrap() {
+                // Inner response comes from the ingredients text area
                 if response.lost_focus() {
-                    self.request(ctx);
+                    if let Some(id) = self.editor_recipe_id {
+                        self.meal_planner.lookup_nutrients_for_recipe_id(ctx, id);
+                    }
                 }
             }
         }
@@ -374,11 +323,7 @@ impl eframe::App for MealPlannerApp {
             .min_height(300.)
             .resizable(true)
             .show(&ctx.clone(), |ui| {
-                self.shopping_list.show(
-                    ui,
-                    &self.meal_planner.daily_plan,
-                    &self.meal_planner.recipies,
-                );
+                self.shopping_list.show(ui, &self.meal_planner);
             });
 
         // Settings window

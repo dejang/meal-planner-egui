@@ -2,6 +2,7 @@ use egui::{
     vec2, Color32, Frame, Id, Image, Layout, Margin, Pos2, RichText, Rounding, ScrollArea, Sense,
     Shadow, Stroke, TextEdit, Widget,
 };
+use uuid::Uuid;
 
 use crate::{
     meal_planner::MealPlanner,
@@ -182,7 +183,7 @@ impl<'a> Widget for GalleryItem<'a> {
 #[derive(Debug, Default)]
 pub struct RecipeGallery {
     search_query: String,
-    current_recipe: Option<usize>,
+    current_recipe: Option<Uuid>,
     nutrients_view: AnalysisResponseView,
     item_dragging: bool,
     drag_image: Option<Image<'static>>,
@@ -217,7 +218,7 @@ impl RecipeGallery {
             .min_width(window_width)
             .max_width(window_width)
             .collapsible(false)
-            .open(&mut self.current_recipe.is_some())
+            .open(&mut self.show_details)
             .show(ui.ctx(), |ui| {
                 ui.set_height(ui.ctx().screen_rect().height());
                 ui.set_width(500.);
@@ -282,11 +283,11 @@ impl RecipeGallery {
         edit_clicked
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &mut MealPlanner) -> Option<usize> {
+    pub fn ui(&mut self, ui: &mut egui::Ui, meal_planner: &mut MealPlanner) -> Option<Uuid> {
         let mut edit_recipe = None;
         ui.input(|input_state| {
             if input_state.key_pressed(egui::Key::Delete) && self.current_recipe.is_some() {
-                meal_planner.remove_recipe(self.current_recipe.unwrap());
+                meal_planner.remove_recipe(&self.current_recipe.unwrap());
                 self.current_recipe = None;
             }
         });
@@ -314,28 +315,27 @@ impl RecipeGallery {
                     let layout = Layout::left_to_right(egui::Align::Center);
                     ui.with_layout(layout, |ui| {
                         let recipes = if self.search_query.is_empty() {
-                            &meal_planner.recipies
+                            meal_planner.get_recipes()
                         } else {
-                            &meal_planner.search_recipe(&self.search_query)
+                            meal_planner.search_recipe(&self.search_query)
                         };
                         let size = (item_width, item_height);
 
-                        for (i, recipe) in recipes.iter().enumerate() {
+                        for recipe in recipes {
                             let payload = Location {
                                 col: 0,
                                 row: usize::MAX,
-                                recipe_index: if let Some(id) = recipe.id { id} else { i },
+                                recipe_id: uuid::Uuid::from(recipe.id),
                             };
 
                             let is_selected = match self.current_recipe {
-                                Some(item_index) => i == item_index,
+                                Some(id) => recipe.id == id,
                                 None => false,
                             };
                             let item_response =
                                 ui.add(GalleryItem::new(&size, recipe, is_selected));
                             if item_response.clicked() {
-                                let idx = if let Some(id) = recipe.id { id} else { i };
-                                self.current_recipe.replace(idx);
+                                self.current_recipe.replace(Uuid::from(recipe.id));
                                 self.show_details = true;
                             }
 
@@ -359,11 +359,12 @@ impl RecipeGallery {
                 });
             });
 
-            if let Some(idx) = self.current_recipe {
-                let recipe = meal_planner.recipies.get(idx).unwrap();
+            if let Some(id) = self.current_recipe {
+                let recipe = meal_planner.get_recipe_by_id(&id).unwrap();
                 let edit_clicked = self.detail_panel(ui, recipe);
-                if (edit_clicked) {
-                    edit_recipe.replace(idx);
+                if edit_clicked {
+                    self.show_details = false;
+                    edit_recipe.replace(id);
                 }
             }
         });

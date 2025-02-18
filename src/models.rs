@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use egui::Layout;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::util::{hb, hh, hs, DEFAULT_PADDING};
 
@@ -322,10 +323,7 @@ impl AnalysisResponse {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Recipe {
-    // the id field is ever changing, it's not a static id
-    // mainly used in search situations, to retarget a recipe
-    // to its position in the global recipe list
-    pub id: Option<usize>,
+    pub id: Uuid,
     pub title: String,
     pub ingredients: String,
     pub instructions: String,
@@ -343,7 +341,7 @@ impl Default for Recipe {
             image_url: String::new(),
             macros: AnalysisResponse::default(),
             servings: 1,
-            id: None,
+            id: Uuid::new_v4(),
         }
     }
 }
