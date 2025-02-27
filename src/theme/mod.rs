@@ -91,11 +91,11 @@ impl Theme {
         let text_styles: BTreeMap<TextStyle, FontId> = [
             (
                 TextStyle::Heading,
-                FontId::new(21.0, Name("inter_heading".into())),
+                FontId::new(18.0, Name("inter_heading".into())),
             ),
             (
                 TextStyle::Body,
-                FontId::new(15.0, Name("inter_body".into())),
+                FontId::new(14.0, Name("inter_body".into())),
             ),
             (TextStyle::Monospace, FontId::new(15.0, Monospace)),
             (TextStyle::Button, FontId::new(14.0, Proportional)),
@@ -103,21 +103,21 @@ impl Theme {
                 TextStyle::Small,
                 FontId::new(12.0, Name("inter_small".into())),
             ),
-            (smallish(), FontId::new(16.0, Name("inter_small".into()))),
+            (smallish(), FontId::new(13.0, Name("inter_small".into()))),
             (
                 recipe_title(),
-                FontId::new(26., Name("inter_heading".into())),
+                FontId::new(19., Name("inter_heading".into())),
             ),
             (
                 helvetica_heading(),
-                FontId::new(20., Name("helvetica".into())),
+                FontId::new(18., Name("helvetica".into())),
             ),
             (helvetica_body(), FontId::new(14., Name("helvetica".into()))),
             (
                 helvetica_small(),
                 FontId::new(12., Name("helvetica".into())),
             ),
-            (handwriting(), FontId::new(18., Name("handwriting".into()))),
+            (handwriting(), FontId::new(20., Name("handwriting".into()))),
         ]
         .into();
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());

@@ -42,7 +42,7 @@ impl ShoppingList {
     }
 
     pub fn show(&self, ui: &mut egui::Ui, meal_planner: &MealPlanner) {
-        let plan = &meal_planner.get_daily_plan(); 
+        let plan = &meal_planner.get_daily_plan();
         let list = self.shopping_list(plan, meal_planner);
 
         TableBuilder::new(ui)

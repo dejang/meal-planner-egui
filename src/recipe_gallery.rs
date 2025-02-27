@@ -12,7 +12,6 @@ use crate::{
     util::{hb, percentage},
 };
 
-
 pub struct Ingredients<'a> {
     recipe: &'a Recipe,
 }
@@ -219,9 +218,8 @@ impl RecipeGallery {
                             ui.add_sized(
                                 vec2(percentage(ui.available_width(), 90), 40.),
                                 |ui: &mut egui::Ui| {
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.heading(&recipe.title)
-                                    }).response
+                                    ui.horizontal_wrapped(|ui| ui.heading(&recipe.title))
+                                        .response
                                 },
                             );
                             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {

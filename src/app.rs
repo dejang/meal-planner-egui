@@ -258,7 +258,7 @@ impl eframe::App for MealPlannerApp {
             .resizable(true)
             .show_separator_line(false)
             .min_height(screen_height * 0.15)
-            .default_height(screen_height * 0.3)
+            .default_height(screen_height * 0.5)
             .show(ctx, |ui| {
                 egui::Frame::none()
                     .fill(ui.visuals().extreme_bg_color)

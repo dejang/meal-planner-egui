@@ -74,7 +74,7 @@ impl MealPlanner {
             false
         }
     }
-    
+
     #[cfg(target_arch = "wasm32")]
     pub fn is_daily_plan_empty(&self) -> bool {
         let mut is_empty = 0;

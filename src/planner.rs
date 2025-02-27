@@ -224,7 +224,7 @@ impl Planner {
             let recipe_id = if from.row == usize::MAX {
                 from.recipe_id
             } else {
-                meal_planner.remove_planner_recipe(from.col,from.row)
+                meal_planner.remove_planner_recipe(from.col, from.row)
             };
 
             meal_planner.add_recipe_to_planner(to.col, to.row, recipe_id);

@@ -1,5 +1,6 @@
 use egui::{
-    CentralPanel, DragValue, Frame, Margin, Response, RichText, ScrollArea, SidePanel, Stroke, TextEdit
+    CentralPanel, DragValue, Frame, Margin, Response, RichText, ScrollArea, SidePanel, Stroke,
+    TextEdit,
 };
 
 use crate::{
@@ -21,11 +22,10 @@ impl Editor {
             .show(ui, |ui| {
                 SidePanel::right("nutrients").show_inside(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(format!("Servings: "));
+                        ui.label("Servings:");
                         ui.add(DragValue::new(&mut recipe.servings));
-                    });        
-                    
-                    AnalysisResponseView::default().ui(
+                    });
+                   AnalysisResponseView.ui(
                         ui,
                         &recipe.macros,
                         recipe.servings,

@@ -125,7 +125,7 @@ impl AnalysisResponseView {
         response.ui(ui, servings, servings_label);
         ui.separator();
         let id = format!("analysis_response_view_{}", ui.unique_id().value());
-        
+
         let mut show_nutrients = ui.data_mut(|data| {
             if let Some(show) = data.get_temp::<bool>(id.clone().into()) {
                 show
