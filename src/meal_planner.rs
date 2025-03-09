@@ -1,5 +1,5 @@
 use ehttp::Request;
-use log::{error, warn};
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -219,8 +219,18 @@ impl MealPlanner {
                 if let Ok(response) = response {
                     let raw_text = response.text().unwrap();
                     if response.status == 200 {
-                        let analysis = serde_json::from_str(raw_text).unwrap();
-                        *request.lock().unwrap() = ApiRequest::Complete(recipe_id, analysis);
+                        let maybe_deserialized = serde_json::from_str(raw_text);
+                        if let Ok(deserialized) = maybe_deserialized {
+                            *request.lock().unwrap() =
+                                ApiRequest::Complete(recipe_id, deserialized);
+                        } else {
+                            error!(
+                                "Failed to deserialize API response: {}",
+                                maybe_deserialized.err().unwrap()
+                            );
+                            *request.lock().unwrap() =
+                                ApiRequest::Error(recipe_id, raw_text.to_string());
+                        }
                     } else {
                         *request.lock().unwrap() =
                             ApiRequest::Error(recipe_id, raw_text.to_string());

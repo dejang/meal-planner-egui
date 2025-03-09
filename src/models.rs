@@ -74,7 +74,7 @@ pub struct Ingredient {
 pub struct ParsedNutrient {
     pub quantity: f32,
     pub measure: Option<String>,
-    pub foodMatch: String,
+    pub foodMatch: Option<String>,
     pub food: String,
     pub foodId: String,
     pub weight: f32,
