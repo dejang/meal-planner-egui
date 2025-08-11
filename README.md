@@ -5,6 +5,8 @@ I am seriously considering having all my future pet projects in Rust and a GUI f
 
 See the [demo](https://dejang.github.io/meal-planner-egui/)
 
+<img width="1800" height="1031" alt="Image" src="https://github.com/user-attachments/assets/35ec816d-a6df-46a9-a52c-243dccd6fa07" />
+
 ## Building from source
 ```
 cargo build && cargo run
