@@ -1,6 +1,6 @@
 use egui::{
-    vec2, Color32, Frame, Id, Image, Layout, Margin, Pos2, RichText, Rounding, ScrollArea, Sense,
-    Shadow, Stroke, TextEdit, Widget,
+    vec2, Color32, CornerRadius, Frame, Id, Image, Layout, Margin, Pos2, RichText, ScrollArea,
+    Sense, Shadow, Stroke, TextEdit, Widget,
 };
 use uuid::Uuid;
 
@@ -93,21 +93,16 @@ impl<'a> Widget for GalleryItem<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let (width, height) = &self.size;
         let height = percentage(*height, 90);
-        let mut frame = egui::Frame::none()
+        let mut frame = egui::Frame::new()
             .fill(ui.visuals().extreme_bg_color)
             .shadow(Shadow {
-                offset: vec2(0.0, 0.0),
-                blur: 10.0,
-                spread: 10.,
+                offset: [0, 0],
+                blur: 10,
+                spread: 10,
                 color: Color32::from_gray(240),
             })
-            .inner_margin(Margin::same(10.0))
-            .outer_margin(Margin {
-                left: 10.0,
-                right: 10.0,
-                top: 10.0,
-                bottom: 10.0,
-            });
+            .inner_margin(Margin::same(10))
+            .outer_margin(Margin::same(10));
 
         if self.selected {
             frame = frame.stroke(Stroke::new(1.0, ui.visuals().window_stroke.color));
@@ -129,7 +124,7 @@ impl<'a> Widget for GalleryItem<'a> {
                     });
                     ui.scope(|ui| {
                         let image = Image::new(&self.recipe.image_url)
-                            .rounding(Rounding::same(10.))
+                            .corner_radius(CornerRadius::same(10))
                             .max_height(percentage(height, 65))
                             .maintain_aspect_ratio(true);
 
@@ -181,14 +176,14 @@ impl RecipeGallery {
 
         let frame = Frame::default()
             .fill(ui.visuals().panel_fill)
-            .rounding(Rounding::same(10.))
+            .corner_radius(CornerRadius::same(10))
             .shadow(Shadow {
-                offset: vec2(-2., 0.0),
-                blur: 20.,
-                spread: 5.,
+                offset: [-2, 0],
+                blur: 20,
+                spread: 5,
                 color: Color32::from_gray(200),
             })
-            .inner_margin(Margin::same(10.));
+            .inner_margin(Margin::same(10));
 
         egui::Window::new("Recipe")
             .title_bar(false)
@@ -204,10 +199,10 @@ impl RecipeGallery {
             .collapsible(false)
             .open(&mut self.show_details)
             .show(ui.ctx(), |ui| {
-                ui.set_height(ui.ctx().screen_rect().height());
+                ui.set_height(ui.ctx().content_rect().height());
                 ui.set_width(500.);
 
-                egui::CentralPanel::default().show_inside(ui, |ui| {
+                egui::CentralPanel::default().show(ui, |ui| {
                     ScrollArea::vertical().show(ui, |ui| {
                         if let None = self.current_recipe {
                             ui.label("No Recipe to display...");
@@ -274,7 +269,7 @@ impl RecipeGallery {
                 self.current_recipe = None;
             }
         });
-        egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.vertical(|ui| {
                 // search area
                 ui.scope(|ui| {

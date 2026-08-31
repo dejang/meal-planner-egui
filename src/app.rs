@@ -181,7 +181,8 @@ impl eframe::App for MealPlannerApp {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
         ctx.set_visuals(egui::Visuals::light());
         self.meal_planner.poll_analysis();
 
@@ -210,8 +211,8 @@ impl eframe::App for MealPlannerApp {
         }
 
         // Fixed top menu bar
-        egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+        egui::Panel::top("main_menu_bar").show(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
                 let is_web = cfg!(target_arch = "wasm32");
                 if !is_web {
@@ -253,23 +254,23 @@ impl eframe::App for MealPlannerApp {
         });
 
         // Resizable bottom panel for the planner
-        let screen_height = ctx.screen_rect().height();
-        egui::TopBottomPanel::bottom("planner_panel")
+        let screen_height = ctx.content_rect().height();
+        egui::Panel::bottom("planner_panel")
             .resizable(true)
             .show_separator_line(false)
-            .min_height(screen_height * 0.15)
-            .default_height(screen_height * 0.5)
-            .show(ctx, |ui| {
-                egui::Frame::none()
+            .min_size(screen_height * 0.15)
+            .default_size(screen_height * 0.5)
+            .show(ui, |ui| {
+                egui::Frame::new()
                     .fill(ui.visuals().extreme_bg_color)
                     .inner_margin(10.0)
-                    .rounding(5.0)
+                    .corner_radius(5)
                     .stroke(egui::Stroke::new(1.0, ui.visuals().window_stroke.color))
                     .shadow(egui::epaint::Shadow {
                         color: ui.visuals().window_shadow.color,
-                        offset: egui::vec2(2.0, 2.0),
-                        blur: 8.0,
-                        spread: 2.0,
+                        offset: [2, 2],
+                        blur: 8,
+                        spread: 2,
                     })
                     .show(ui, |ui| {
                         self.planner.ui(ui, &mut self.meal_planner);
@@ -278,7 +279,7 @@ impl eframe::App for MealPlannerApp {
 
         // Central panel for recipe browser
         let edit_recipe = egui::CentralPanel::default()
-            .show(ctx, |ui| self.recipe_gallery.ui(ui, &mut self.meal_planner))
+            .show(ui, |ui| self.recipe_gallery.ui(ui, &mut self.meal_planner))
             .inner;
 
         if edit_recipe.is_some() {
@@ -292,8 +293,8 @@ impl eframe::App for MealPlannerApp {
             .resizable(true)
             .collapsible(false)
             .default_height(600.)
-            .default_width(percentage(ctx.screen_rect().width(), 80))
-            .show(&ctx.clone(), |ui| {
+            .default_width(percentage(ctx.content_rect().width(), 80))
+            .show(&ctx, |ui| {
                 if let Some(id) = self.editor_recipe_id {
                     Editor::new().ui(ui, self.meal_planner.get_recipe_by_id_mut(&id).unwrap())
                 } else {
@@ -314,7 +315,7 @@ impl eframe::App for MealPlannerApp {
                 // Inner response comes from the ingredients text area
                 if response.lost_focus() {
                     if let Some(id) = self.editor_recipe_id {
-                        self.meal_planner.lookup_nutrients_for_recipe_id(ctx, id);
+                        self.meal_planner.lookup_nutrients_for_recipe_id(&ctx, id);
                     }
                 }
             }
@@ -325,7 +326,7 @@ impl eframe::App for MealPlannerApp {
             .open(&mut self.shopping_list_visible)
             .min_height(300.)
             .resizable(true)
-            .show(&ctx.clone(), |ui| {
+            .show(&ctx, |ui| {
                 self.shopping_list.show(ui, &self.meal_planner);
             });
 
@@ -334,7 +335,7 @@ impl eframe::App for MealPlannerApp {
             .open(&mut self.settings_window_visible)
             .min_height(300.)
             .resizable(true)
-            .show(&ctx.clone(), |ui| {
+            .show(&ctx, |ui| {
                 ui.group(|ui| {
                     ui.horizontal(|ui| {
                         ui.label("Edamam API Key");
@@ -354,7 +355,7 @@ impl eframe::App for MealPlannerApp {
             .min_height(400.)
             .max_height(650.)
             .resizable(true)
-            .show(ctx, |ui| {
+            .show(&ctx, |ui| {
                 ui.heading("You haven't configured APP_ID and API_KEY for Edamam service");
                 ui.add_space(DEFAULT_PADDING);
                 ui.horizontal(|ui| {

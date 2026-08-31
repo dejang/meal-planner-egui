@@ -3,7 +3,7 @@ pub mod typography;
 pub mod widgets;
 use std::collections::BTreeMap;
 
-use egui::{Color32, FontFamily, FontId, TextStyle};
+use egui::{Color32, FontFamily, FontId, RichText, TextStyle};
 use fonts::install_fonts;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +20,10 @@ pub fn recipe_title() -> TextStyle {
 
 pub fn handwriting() -> TextStyle {
     TextStyle::Name("handwriting".into())
+}
+
+pub fn icon(glyph: impl Into<String>) -> RichText {
+    RichText::new(glyph).family(FontFamily::Name("icons".into()))
 }
 
 pub fn smallish() -> TextStyle {

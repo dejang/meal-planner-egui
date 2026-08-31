@@ -1,4 +1,6 @@
-use eframe::egui::{self, Color32, Pos2, Response, Sense, Stroke, TextEdit, Ui, Vec2};
+use eframe::egui::{
+    self, Color32, Frame, Margin, Pos2, Response, Sense, Stroke, TextEdit, Ui, UiBuilder,
+};
 
 use crate::handwriting;
 
@@ -11,7 +13,7 @@ impl Notebook {
         let line_count = 15;
         let text_style = handwriting();
         let font_id = ui.style().text_styles[&text_style].clone();
-        let line_height = ui.fonts(|fonts| fonts.row_height(&font_id));
+        let line_height = ui.fonts_mut(|fonts| fonts.row_height(&font_id));
         let total_height = line_count as f32 * line_height;
 
         // 2) Allocate the full rectangle for lines + text
@@ -35,15 +37,15 @@ impl Notebook {
         }
 
         // 4) Place a text editor *over* the same rect with a transparent background
-        ui.allocate_ui_at_rect(rect, |ui| {
+        ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
             // We want the text editor to fill the entire rect:
             let size = ui.available_size(); // same as `rect.size()`
 
             ui.add_sized(
                 size,
                 TextEdit::multiline(value)
-                    .frame(false) // no background box
-                    .margin(Vec2::ZERO) // no internal padding
+                    .frame(Frame::NONE) // no background box
+                    .margin(Margin::ZERO) // no internal padding
                     .lock_focus(true)
                     .desired_width(size.x) // ensure it’s as wide as the rect
                     .desired_rows(line_count) // helps ensure it’s tall enough

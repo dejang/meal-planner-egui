@@ -1,6 +1,5 @@
 use egui::{
-    CentralPanel, DragValue, Frame, Margin, Response, RichText, ScrollArea, SidePanel, Stroke,
-    TextEdit,
+    CentralPanel, DragValue, Frame, Margin, Panel, Response, RichText, ScrollArea, Stroke, TextEdit,
 };
 
 use crate::{
@@ -17,10 +16,10 @@ impl Editor {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, recipe: &mut Recipe) -> Option<Response> {
         Frame::group(ui.style())
-            .inner_margin(Margin::same(DEFAULT_PADDING))
+            .inner_margin(Margin::same(DEFAULT_PADDING as i8))
             .stroke(Stroke::NONE)
             .show(ui, |ui| {
-                SidePanel::right("nutrients").show_inside(ui, |ui| {
+                Panel::right("nutrients").show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.label("Servings:");
                         ui.add(DragValue::new(&mut recipe.servings));
@@ -33,7 +32,7 @@ impl Editor {
                     );
                 });
                 CentralPanel::default()
-                    .show_inside(ui, |ui| {
+                    .show(ui, |ui| {
                         ScrollArea::vertical()
                             .show(ui, |ui| {
                                 // Recipe Title

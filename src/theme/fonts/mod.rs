@@ -101,9 +101,54 @@ pub fn install_fonts(ctx: &egui::Context) {
     ctx.add_font(FontInsert::new(
         "icons",
         FontData::from_static(include_bytes!("icons/lucide.ttf")),
-        vec![InsertFontFamily {
-            family: egui::FontFamily::Proportional,
-            priority: egui::epaint::text::FontPriority::Lowest,
-        }],
+        vec![
+            InsertFontFamily {
+                family: egui::FontFamily::Name(Arc::from("icons")),
+                priority: egui::epaint::text::FontPriority::Highest,
+            },
+            InsertFontFamily {
+                family: egui::FontFamily::Proportional,
+                priority: egui::epaint::text::FontPriority::Highest,
+            },
+        ],
     ));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lucide_is_the_primary_proportional_font() {
+        let ctx = egui::Context::default();
+        install_fonts(&ctx);
+
+        // Font additions become active at the start of the next pass.
+        let mut output = ctx.run_ui(Default::default(), |_| {});
+        output.textures_delta.clear();
+        let mut output = ctx.run_ui(Default::default(), |ui| {
+            ui.ctx().fonts_mut(|fonts| {
+                let proportional = &fonts.definitions().families[&egui::FontFamily::Proportional];
+                assert_eq!(proportional.first().map(String::as_str), Some("icons"));
+                let icon_family = egui::FontFamily::Name(Arc::from("icons"));
+                assert_eq!(
+                    fonts.definitions().families[&icon_family]
+                        .first()
+                        .map(String::as_str),
+                    Some("icons")
+                );
+                let font_id = egui::FontId::new(16.0, icon_family);
+                for glyph in ['\u{E18D}', '\u{E3EB}', '\u{E607}'] {
+                    assert!(fonts.has_glyph(&font_id, glyph));
+                    let galley = fonts.layout_no_wrap(
+                        glyph.to_string(),
+                        font_id.clone(),
+                        egui::Color32::WHITE,
+                    );
+                    assert_eq!(galley.rows[0].glyphs[0].chr, glyph);
+                }
+            });
+        });
+        output.textures_delta.clear();
+    }
 }

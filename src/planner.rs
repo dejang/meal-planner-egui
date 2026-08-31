@@ -2,6 +2,7 @@ use egui::*;
 use uuid::Uuid;
 
 use crate::{
+    icon,
     meal_planner::MealPlanner,
     models::{AnalysisResponseView, Recipe},
     typography::icons::{ICON_CLIPBOARD_PASTE, ICON_MONITOR_COG, ICON_TRASH_2},
@@ -48,7 +49,7 @@ impl Planner {
                 ui.horizontal(|ui| {
                     ui.heading(format!("Day {}", col_idx + 1));
                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                        let clear_btn = Button::new(ICON_TRASH_2);
+                        let clear_btn = Button::new(icon(ICON_TRASH_2));
                         let tooltip_ui = |ui: &mut Ui| {
                             ui.label("Clear meals");
                         };
@@ -57,7 +58,7 @@ impl Planner {
                         };
 
                         if col_idx > 0 {
-                            let duplicate_btn = Button::new(ICON_CLIPBOARD_PASTE);
+                            let duplicate_btn = Button::new(icon(ICON_CLIPBOARD_PASTE));
                             let tooltip_ui = |ui: &mut Ui| {
                                 ui.label("Duplicate from previous day.");
                             };
@@ -72,7 +73,7 @@ impl Planner {
                     .show(ui, |ui| {
                         let pointer_pos = ui.ctx().pointer_latest_pos();
                         let pointer_any_pressed = ui.ctx().input(|i| i.pointer.any_pressed());
-                        let pointer_is_over_area = ui.ctx().is_pointer_over_area();
+                        let pointer_is_over_area = ui.ctx().is_pointer_over_egui();
 
                         let frame = Frame::default().inner_margin(4.0);
 
@@ -162,10 +163,8 @@ impl Planner {
                                 .fixed_pos(self.context_menu_pos)
                                 .show(ui.ctx(), |ui| {
                                     egui::Frame::popup(ui.style()).show(ui, |ui| {
-                                        if ui.button(format!("{} Edit", ICON_MONITOR_COG)).clicked()
-                                        {
-                                        }
-                                        if ui.button(format!("{} Remove", ICON_TRASH_2)).clicked() {
+                                        if ui.button((icon(ICON_MONITOR_COG), "Edit")).clicked() {}
+                                        if ui.button((icon(ICON_TRASH_2), "Remove")).clicked() {
                                             if let Some(payload) = self.context_menu_payload {
                                                 meal_planner.remove_planner_recipe(
                                                     payload.col,
