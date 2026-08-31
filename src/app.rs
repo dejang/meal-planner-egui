@@ -9,12 +9,14 @@ use rfd::FileHandle;
 use uuid::Uuid;
 
 use crate::{
+    icon,
     meal_planner::MealPlanner,
     models::AnalysisResponse,
     planner::Planner,
     recipe_editor::Editor,
     recipe_gallery::RecipeGallery,
     shopping_list::ShoppingList,
+    typography::icons::ICON_CHEVRON_DOWN,
     util::{percentage, DEFAULT_PADDING},
 };
 
@@ -224,12 +226,19 @@ impl eframe::App for MealPlannerApp {
                     ui.add_space(16.0);
                 }
 
-                if ui.button("New Recipe").clicked() {
-                    if let Some(draft) = self.meal_planner.create_draft_recipe() {
-                        self.editor_recipe_id = Some(draft.id);
-                        self.editor_visible = true;
+                ui.menu_button(("New Recipe", icon(ICON_CHEVRON_DOWN)), |ui| {
+                    if ui.button("Create").clicked() {
+                        if let Some(draft) = self.meal_planner.create_draft_recipe() {
+                            self.editor_recipe_id = Some(draft.id);
+                            self.editor_visible = true;
+                        }
+                        ui.close();
                     }
-                }
+
+                    if ui.button("Import from URL").clicked() {
+                        ui.close();
+                    }
+                });
 
                 if ui.button("Import Data").clicked() {
                     let task = rfd::AsyncFileDialog::new().pick_file();
