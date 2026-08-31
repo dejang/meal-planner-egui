@@ -11,7 +11,6 @@ use uuid::Uuid;
 use crate::{
     icon,
     meal_planner::MealPlanner,
-    models::AnalysisResponse,
     planner::Planner,
     recipe_editor::Editor,
     recipe_gallery::RecipeGallery,
@@ -30,14 +29,6 @@ fn execute<F: std::future::Future<Output = ()> + 'static>(f: F) {
     wasm_bindgen_futures::spawn_local(f);
 }
 
-#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Download {
-    #[default]
-    None,
-    InProgress,
-    Done(ehttp::Result<AnalysisResponse>),
-}
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -52,8 +43,6 @@ pub struct MealPlannerApp {
     pub shopping_list_visible: bool,
     #[serde(skip)]
     pub settings_window_visible: bool,
-    #[serde(skip)]
-    download: Arc<Mutex<Download>>,
     #[serde(skip)]
     import_data: Arc<Mutex<(String, Vec<u8>)>>,
     #[serde(skip)]
@@ -72,7 +61,6 @@ impl Default for MealPlannerApp {
             shopping_list_visible: false,
             settings_window_visible: false,
             shopping_list: ShoppingList::default(),
-            download: Arc::new(Mutex::new(Download::None)),
             import_data: Arc::new(Mutex::new((String::new(), vec![]))),
             meal_planner: MealPlanner::default(),
             recipe_gallery: RecipeGallery::default(),
@@ -195,7 +183,7 @@ impl eframe::App for MealPlannerApp {
                     let decoded = BASE64_STANDARD.decode(content).unwrap();
                     if self
                         .meal_planner
-                        .from_json(std::str::from_utf8(decoded.as_slice()).unwrap())
+                        .load_json(std::str::from_utf8(decoded.as_slice()).unwrap())
                     {
                         println!("Successful");
                     }
@@ -206,7 +194,7 @@ impl eframe::App for MealPlannerApp {
                 if !lock.1.is_empty() {
                     let decoded = BASE64_STANDARD.decode(&lock.1).unwrap();
                     self.meal_planner
-                        .from_json(std::str::from_utf8(decoded.as_slice()).unwrap());
+                        .load_json(std::str::from_utf8(decoded.as_slice()).unwrap());
                     lock.1 = vec![];
                 }
             }

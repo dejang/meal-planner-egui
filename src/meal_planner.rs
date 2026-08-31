@@ -1,5 +1,5 @@
 use ehttp::Request;
-use log::{debug, error, warn};
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -22,18 +22,13 @@ struct IncomingJSON {
     meal_planner: IncomingState,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 enum ApiRequest {
+    #[default]
     Idle,
     Requesting(Uuid),
-    Complete(Uuid, AnalysisResponse),
+    Complete(Uuid, Box<AnalysisResponse>),
     Error(Uuid, String),
-}
-
-impl Default for ApiRequest {
-    fn default() -> Self {
-        ApiRequest::Idle
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,7 +56,7 @@ impl Default for MealPlanner {
 }
 
 impl MealPlanner {
-    pub fn from_json(&mut self, json: &str) -> bool {
+    pub fn load_json(&mut self, json: &str) -> bool {
         let result = serde_json::from_str::<IncomingJSON>(json);
         if let Ok(state) = result {
             self.api_key = state.meal_planner.api_key;
@@ -110,7 +105,7 @@ impl MealPlanner {
             warn!("Pending request");
             return;
         }
-        *request.lock().unwrap() = ApiRequest::Requesting(id.clone());
+        *request.lock().unwrap() = ApiRequest::Requesting(id);
 
         let recipe = self.recipies.get(&id).unwrap();
         self.request(ctx, id, recipe.ingredients_to_vec());
@@ -120,7 +115,8 @@ impl MealPlanner {
         if let Ok(mut lock) = self.api_request.clone().try_lock() {
             match &*lock {
                 ApiRequest::Complete(uuid, analysis_response) => {
-                    self.recipies.get_mut(&uuid).unwrap().macros = analysis_response.to_owned();
+                    self.recipies.get_mut(uuid).unwrap().macros =
+                        analysis_response.as_ref().clone();
                     *lock = ApiRequest::Idle
                 }
                 ApiRequest::Error(uuid, err) => {
@@ -137,7 +133,7 @@ impl MealPlanner {
             return None;
         }
         let recipe = Recipe::default();
-        let id = recipe.id.clone();
+        let id = recipe.id;
         self.recipies.insert(recipe.id, recipe);
         self.draft_recipe = Some(id);
         self.recipies.get_mut(&id)
@@ -164,7 +160,7 @@ impl MealPlanner {
     }
 
     pub fn get_recipes(&self) -> Vec<&Recipe> {
-        self.recipies.iter().map(|(_key, value)| value).collect()
+        self.recipies.values().collect()
     }
 
     pub fn get_daily_plan(&self) -> &Vec<Vec<Uuid>> {
@@ -185,13 +181,7 @@ impl MealPlanner {
     pub fn add_recipe_to_planner(&mut self, day: usize, recipe_position: usize, recipe_id: Uuid) {
         let day_plan = self.daily_plan.get_mut(day).unwrap();
 
-        let insert_position = if day_plan.len() == 0 {
-            day_plan.len()
-        } else if recipe_position > day_plan.len() - 1 {
-            day_plan.len()
-        } else {
-            recipe_position
-        };
+        let insert_position = recipe_position.min(day_plan.len());
 
         day_plan.insert(insert_position, recipe_id);
     }
@@ -222,7 +212,7 @@ impl MealPlanner {
                         let maybe_deserialized = serde_json::from_str(raw_text);
                         if let Ok(deserialized) = maybe_deserialized {
                             *request.lock().unwrap() =
-                                ApiRequest::Complete(recipe_id, deserialized);
+                                ApiRequest::Complete(recipe_id, Box::new(deserialized));
                         } else {
                             error!(
                                 "Failed to deserialize API response: {}",

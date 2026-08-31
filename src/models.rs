@@ -15,32 +15,6 @@ const FOOD_LABEL_CODES: [&str; 9] = [
     "FAT", "FASAT", "FATRN", "CHOLE", "NA", "CHOCDF", "FIBTG", "SUGAR", "PROCNT",
 ];
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-pub struct ParsedNutrientSimple {
-    pub qty: i32,
-    pub measure: String,
-    pub food_match: String,
-    pub food_id: String,
-    pub weight: i32,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct NutritionDataModel {
-    pub uri: String,
-    pub calories: i32,
-    pub totalCO2Emissions: f32,
-    pub co2EmissionsClass: String,
-    pub totalWeight: f32,
-    pub dietLabels: Vec<String>,
-    pub healthLabels: Vec<String>,
-    pub cautions: Vec<String>,
-    pub totalNutrients: HashMap<String, Nutrient>,
-    pub totalDaily: HashMap<String, Nutrient>,
-    pub ingredients: Vec<Ingredient>,
-    pub totalNutrientsKCal: HashMap<String, Nutrient>,
-}
-
 #[derive(Default, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Nutrient {
     pub label: String,
@@ -49,14 +23,6 @@ pub struct Nutrient {
 }
 
 impl Nutrient {
-    pub fn qty_per_serving(&self, servings: u32) -> u32 {
-        (self.quantity.abs().ceil() as u32) / servings
-    }
-    pub fn qty_with_unit(&self) -> String {
-        let qty = self.quantity.abs().ceil() as u32;
-        format!("{}{}", qty, self.unit)
-    }
-
     pub fn qty_with_unit_per_serving(&self, servings: u32) -> String {
         let qty = (self.quantity.abs().ceil() as u32) / servings;
         format!("{}{}", qty, self.unit)
@@ -126,13 +92,8 @@ impl AnalysisResponseView {
         ui.separator();
         let id = format!("analysis_response_view_{}", ui.unique_id().value());
 
-        let mut show_nutrients = ui.data_mut(|data| {
-            if let Some(show) = data.get_temp::<bool>(id.clone().into()) {
-                show
-            } else {
-                false
-            }
-        });
+        let mut show_nutrients =
+            ui.data_mut(|data| data.get_temp::<bool>(id.clone().into()).unwrap_or_default());
 
         if ui.button("Nutrients").clicked() {
             show_nutrients = !show_nutrients;
@@ -351,7 +312,7 @@ impl Recipe {
         self.ingredients
             .split('\n')
             .map(|line| line.trim().to_string())
-            .filter(|line| line.ne(&"".to_string()))
+            .filter(|line| !line.is_empty())
             .collect()
     }
 
@@ -418,17 +379,13 @@ impl Recipe {
     }
 }
 
-impl ToString for Recipe {
-    fn to_string(&self) -> String {
-        if self.title.is_empty() {
-            return "Default Recipe".to_string();
-        }
-        self.title.to_string()
-    }
-}
-
-impl ToString for &Recipe {
-    fn to_string(&self) -> String {
-        self.title.to_string()
+impl std::fmt::Display for Recipe {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let title = if self.title.is_empty() {
+            "Default Recipe"
+        } else {
+            &self.title
+        };
+        formatter.write_str(title)
     }
 }

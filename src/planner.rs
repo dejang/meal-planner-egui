@@ -30,7 +30,7 @@ impl Default for Planner {
     fn default() -> Self {
         Self {
             search_term: String::new(),
-            collapsible_nutrients: (0..7).map(|_| AnalysisResponseView::default()).collect(),
+            collapsible_nutrients: (0..7).map(|_| AnalysisResponseView).collect(),
             context_menu_pos: Pos2::default(),
             show_context_menu: false,
             context_menu_payload: None,
@@ -163,7 +163,7 @@ impl Planner {
                                 .fixed_pos(self.context_menu_pos)
                                 .show(ui.ctx(), |ui| {
                                     egui::Frame::popup(ui.style()).show(ui, |ui| {
-                                        if ui.button((icon(ICON_MONITOR_COG), "Edit")).clicked() {}
+                                        let _ = ui.button((icon(ICON_MONITOR_COG), "Edit"));
                                         if ui.button((icon(ICON_TRASH_2), "Remove")).clicked() {
                                             if let Some(payload) = self.context_menu_payload {
                                                 meal_planner.remove_planner_recipe(

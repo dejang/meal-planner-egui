@@ -30,7 +30,7 @@ impl<'a> Widget for Ingredients<'a> {
                     if ingredient.parsed.is_none() {
                         return;
                     }
-                    let detail = ingredient.parsed.as_ref().unwrap().get(0).unwrap();
+                    let detail = ingredient.parsed.as_ref().unwrap().first().unwrap();
                     ui.label(&detail.food);
 
                     let layout = Layout::right_to_left(egui::Align::Center);
@@ -38,8 +38,8 @@ impl<'a> Widget for Ingredients<'a> {
                         ui.set_width(40.);
                         ui.label(format!(
                             "{} {}",
-                            &detail.quantity,
-                            &detail.measure.as_ref().unwrap_or(&"N/A".to_string())
+                            detail.quantity,
+                            detail.measure.as_deref().unwrap_or("N/A")
                         ));
                     });
                 });
@@ -138,12 +138,12 @@ impl<'a> Widget for GalleryItem<'a> {
                         ui.horizontal(|ui| {
                             ui.label(hb(&format!(
                                 "Calories: {}",
-                                &self.recipe.macros.calories / (self.recipe.servings as i32)
+                                self.recipe.macros.calories / (self.recipe.servings as i32)
                             )));
 
                             let layout = Layout::right_to_left(egui::Align::Center);
                             ui.with_layout(layout, |ui| {
-                                ui.label(hb(&format!("Servings: {}", &self.recipe.servings)));
+                                ui.label(hb(&format!("Servings: {}", self.recipe.servings)));
                             });
                         });
                         ui.separator();
@@ -204,7 +204,7 @@ impl RecipeGallery {
 
                 egui::CentralPanel::default().show(ui, |ui| {
                     ScrollArea::vertical().show(ui, |ui| {
-                        if let None = self.current_recipe {
+                        if self.current_recipe.is_none() {
                             ui.label("No Recipe to display...");
                             return;
                         }
@@ -254,7 +254,7 @@ impl RecipeGallery {
                 if i.key_pressed(egui::Key::Escape) {
                     self.show_details = false;
                     self.current_recipe = None;
-                    self.nutrients_view = AnalysisResponseView::default();
+                    self.nutrients_view = AnalysisResponseView;
                 }
             });
         }
@@ -303,7 +303,7 @@ impl RecipeGallery {
                             let payload = Location {
                                 col: 0,
                                 row: usize::MAX,
-                                recipe_id: uuid::Uuid::from(recipe.id),
+                                recipe_id: recipe.id,
                             };
 
                             let is_selected = match self.current_recipe {
@@ -313,7 +313,7 @@ impl RecipeGallery {
                             let item_response =
                                 ui.add(GalleryItem::new(&size, recipe, is_selected));
                             if item_response.clicked() {
-                                self.current_recipe.replace(Uuid::from(recipe.id));
+                                self.current_recipe.replace(recipe.id);
                                 self.show_details = true;
                             }
 
