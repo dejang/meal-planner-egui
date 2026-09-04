@@ -5,7 +5,8 @@ I am seriously considering having all my future pet projects in Rust and a GUI f
 
 See the [demo](https://dejang.github.io/meal-planner-egui/)
 
-<img width="1800" height="1031" alt="Image" src="https://github.com/user-attachments/assets/35ec816d-a6df-46a9-a52c-243dccd6fa07" />
+<img width="1728" height="967" alt="Screenshot 2026-09-05 at 12 50 42 AM" src="https://github.com/user-attachments/assets/2ca20095-5a58-475c-abb8-c0c30a76e5db" />
+
 
 ## Building from source
 ```
