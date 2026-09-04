@@ -6,6 +6,7 @@ mod models;
 mod planner;
 mod recipe_editor;
 mod recipe_gallery;
+mod recipe_import;
 mod shopping_list;
 mod theme;
 mod util;

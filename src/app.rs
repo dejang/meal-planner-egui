@@ -14,10 +14,13 @@ use crate::{
     planner::Planner,
     recipe_editor::Editor,
     recipe_gallery::RecipeGallery,
+    recipe_import::RecipeImporter,
     shopping_list::ShoppingList,
     typography::icons::ICON_CHEVRON_DOWN,
     util::{percentage, DEFAULT_PADDING},
 };
+
+const DRAFT_IMPORT_CONFLICT: &str = "Close the current new recipe before importing another one";
 
 #[cfg(not(target_arch = "wasm32"))]
 fn execute<F: std::future::Future<Output = ()> + Send + 'static>(f: F) {
@@ -44,6 +47,14 @@ pub struct MealPlannerApp {
     #[serde(skip)]
     pub settings_window_visible: bool,
     #[serde(skip)]
+    import_recipe_visible: bool,
+    #[serde(skip)]
+    import_recipe_url: String,
+    #[serde(skip)]
+    import_recipe_error: Option<String>,
+    #[serde(skip)]
+    recipe_importer: RecipeImporter,
+    #[serde(skip)]
     import_data: Arc<Mutex<(String, Vec<u8>)>>,
     #[serde(skip)]
     recipe_gallery: RecipeGallery,
@@ -60,6 +71,10 @@ impl Default for MealPlannerApp {
             editor_recipe_id: None,
             shopping_list_visible: false,
             settings_window_visible: false,
+            import_recipe_visible: false,
+            import_recipe_url: String::new(),
+            import_recipe_error: None,
+            recipe_importer: RecipeImporter::default(),
             shopping_list: ShoppingList::default(),
             import_data: Arc::new(Mutex::new((String::new(), vec![]))),
             meal_planner: MealPlanner::default(),
@@ -176,6 +191,26 @@ impl eframe::App for MealPlannerApp {
         ctx.set_visuals(egui::Visuals::light());
         self.meal_planner.poll_analysis();
 
+        if let Some(result) = self.recipe_importer.take_result() {
+            match result {
+                Ok(imported) => {
+                    if let Some(draft) = self.meal_planner.create_draft_recipe() {
+                        imported.apply_to(draft, self.import_recipe_url.trim());
+                        let recipe_id = draft.id;
+                        self.editor_recipe_id = Some(recipe_id);
+                        self.editor_visible = true;
+                        self.import_recipe_visible = false;
+                        self.import_recipe_error = None;
+                        self.meal_planner
+                            .lookup_nutrients_for_recipe_id(&ctx, recipe_id);
+                    } else {
+                        self.import_recipe_error = Some(DRAFT_IMPORT_CONFLICT.to_string());
+                    }
+                }
+                Err(error) => self.import_recipe_error = Some(error),
+            }
+        }
+
         {
             if let Ok(mut lock) = self.import_data.clone().try_lock() {
                 if !lock.0.is_empty() {
@@ -224,6 +259,8 @@ impl eframe::App for MealPlannerApp {
                     }
 
                     if ui.button("Import from URL").clicked() {
+                        self.import_recipe_visible = true;
+                        self.import_recipe_error = None;
                         ui.close();
                     }
                 });
@@ -283,6 +320,39 @@ impl eframe::App for MealPlannerApp {
             self.editor_recipe_id = edit_recipe;
             self.editor_visible = true;
         }
+
+        // Recipe URL import window
+        egui::Window::new("Import Recipe from URL")
+            .open(&mut self.import_recipe_visible)
+            .resizable(false)
+            .default_width(520.0)
+            .show(&ctx, |ui| {
+                ui.label("Recipe URL");
+                let response = ui.text_edit_singleline(&mut self.import_recipe_url);
+                let loading = self.recipe_importer.is_loading();
+                let submit = ui.add_enabled(
+                    !loading && !self.import_recipe_url.trim().is_empty(),
+                    egui::Button::new(if loading { "Importing…" } else { "Import" }),
+                );
+
+                if (submit.clicked()
+                    || (response.lost_focus()
+                        && ui.input(|input| input.key_pressed(egui::Key::Enter))))
+                    && !loading
+                {
+                    self.import_recipe_error = if self.meal_planner.can_create_draft_recipe() {
+                        self.recipe_importer
+                            .start(&ctx, self.import_recipe_url.trim())
+                            .err()
+                    } else {
+                        Some(DRAFT_IMPORT_CONFLICT.to_string())
+                    };
+                }
+
+                if let Some(error) = &self.import_recipe_error {
+                    ui.colored_label(ui.visuals().error_fg_color, error);
+                }
+            });
 
         // Recipe Editor window
         let response = egui::Window::new("Recipe Editor")
