@@ -95,7 +95,10 @@ impl AnalysisResponseView {
         let mut show_nutrients =
             ui.data_mut(|data| data.get_temp::<bool>(id.clone().into()).unwrap_or_default());
 
-        if ui.button("Nutrients").clicked() {
+        if ui
+            .add(egui::Button::new("Nutrients").selected(show_nutrients))
+            .clicked()
+        {
             show_nutrients = !show_nutrients;
             ui.data_mut(|data| {
                 data.insert_temp(id.into(), show_nutrients);
@@ -131,121 +134,137 @@ impl AnalysisResponseView {
 impl AnalysisResponse {
     pub fn ui(&self, ui: &mut egui::Ui, servings: u32, servings_label: &str) {
         ui.vertical(|ui| {
-            ui.group(|ui| {
-                ui.label(hh("Nutrition Facts"));
-                ui.separator();
-                ui.label(hs(servings_label));
-                let calories_per_serving = self.calories as u32 / servings;
-                self.row(ui, "Calories", "", &calories_per_serving.to_string(), &[]);
-                ui.separator();
-                ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                    ui.label(hs("% Daily Value*"));
+            egui::Frame::new()
+                .fill(crate::palette::PAPER)
+                .stroke(egui::Stroke::new(1.0, crate::palette::BORDER))
+                .corner_radius(10)
+                .inner_margin(8)
+                .show(ui, |ui| {
+                    ui.label(hh("Nutrition Facts").color(crate::palette::FOREST));
+                    ui.separator();
+                    ui.label(hs(servings_label).color(crate::palette::MUTED));
+                    let calories_per_serving = self.calories as u32 / servings;
+                    ui.horizontal(|ui| {
+                        ui.label(hb("Calories").strong().color(crate::palette::FOREST));
+                        ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                            ui.label(
+                                hh(&calories_per_serving.to_string())
+                                    .size(26.0)
+                                    .color(crate::palette::FOREST),
+                            );
+                        });
+                    });
+                    ui.separator();
+                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                        ui.label(hs("% Daily Value*").color(crate::palette::MUTED));
+                    });
+
+                    ui.separator();
+
+                    let default_nutrient = Nutrient::default();
+                    let fat_gr = self.totalNutrients.get("FAT").unwrap_or(&default_nutrient);
+                    let fat_percent = self.totalDaily.get("FAT").unwrap_or(&default_nutrient);
+                    let fat_sat_gr = self
+                        .totalNutrients
+                        .get("FASAT")
+                        .unwrap_or(&default_nutrient);
+                    let fat_sat_percent = self.totalDaily.get("FASAT").unwrap_or(&default_nutrient);
+                    let trans_fat_gr = self
+                        .totalNutrients
+                        .get("FATRN")
+                        .unwrap_or(&default_nutrient);
+
+                    self.row(
+                        ui,
+                        "Total Fat",
+                        &fat_gr.qty_with_unit_per_serving(servings),
+                        &fat_percent.qty_with_unit_per_serving(servings),
+                        &[
+                            (
+                                "Saturated Fat",
+                                &fat_sat_gr.qty_with_unit_per_serving(servings),
+                                &fat_sat_percent.qty_with_unit_per_serving(servings),
+                            ),
+                            (
+                                "Trans Fat",
+                                &trans_fat_gr.qty_with_unit_per_serving(servings),
+                                "",
+                            ),
+                        ],
+                    );
+
+                    let cholesterol_gr = self
+                        .totalNutrients
+                        .get("CHOLE")
+                        .unwrap_or(&default_nutrient);
+                    let cholesterol_percent =
+                        self.totalDaily.get("CHOLE").unwrap_or(&default_nutrient);
+                    self.row(
+                        ui,
+                        "Cholesterol",
+                        &cholesterol_gr.qty_with_unit_per_serving(servings),
+                        &cholesterol_percent.qty_with_unit_per_serving(servings),
+                        &[],
+                    );
+
+                    let sodium_gr = self.totalNutrients.get("NA").unwrap_or(&default_nutrient);
+                    let sodium_percent = self.totalDaily.get("NA").unwrap_or(&default_nutrient);
+                    self.row(
+                        ui,
+                        "Sodium",
+                        &sodium_gr.qty_with_unit_per_serving(servings),
+                        &sodium_percent.qty_with_unit_per_serving(servings),
+                        &[],
+                    );
+
+                    let carbs_gr = self
+                        .totalNutrients
+                        .get("CHOCDF")
+                        .unwrap_or(&default_nutrient);
+                    let carbs_percent = self.totalDaily.get("CHOCDF").unwrap_or(&default_nutrient);
+                    let fiber_gr = self
+                        .totalNutrients
+                        .get("FIBTG")
+                        .unwrap_or(&default_nutrient);
+                    let fiber_percent = self.totalDaily.get("FIBTG").unwrap_or(&default_nutrient);
+                    let sugar_gr = self
+                        .totalNutrients
+                        .get("SUGAR")
+                        .unwrap_or(&default_nutrient);
+
+                    self.row(
+                        ui,
+                        "Total Carbohydrate",
+                        &carbs_gr.qty_with_unit_per_serving(servings),
+                        &carbs_percent.qty_with_unit_per_serving(servings),
+                        &[
+                            (
+                                "Dietary Fiber",
+                                &fiber_gr.qty_with_unit_per_serving(servings),
+                                &fiber_percent.qty_with_unit_per_serving(servings),
+                            ),
+                            (
+                                "Total Sugars",
+                                &sugar_gr.qty_with_unit_per_serving(servings),
+                                "",
+                            ),
+                        ],
+                    );
+
+                    let protein_gr = self
+                        .totalNutrients
+                        .get("PROCNT")
+                        .unwrap_or(&default_nutrient);
+                    let protein_percent =
+                        self.totalDaily.get("PROCNT").unwrap_or(&default_nutrient);
+                    self.row(
+                        ui,
+                        "Protein",
+                        &protein_gr.qty_with_unit_per_serving(servings),
+                        &protein_percent.qty_with_unit_per_serving(servings),
+                        &[],
+                    );
                 });
-
-                ui.separator();
-
-                let default_nutrient = Nutrient::default();
-                let fat_gr = self.totalNutrients.get("FAT").unwrap_or(&default_nutrient);
-                let fat_percent = self.totalDaily.get("FAT").unwrap_or(&default_nutrient);
-                let fat_sat_gr = self
-                    .totalNutrients
-                    .get("FASAT")
-                    .unwrap_or(&default_nutrient);
-                let fat_sat_percent = self.totalDaily.get("FASAT").unwrap_or(&default_nutrient);
-                let trans_fat_gr = self
-                    .totalNutrients
-                    .get("FATRN")
-                    .unwrap_or(&default_nutrient);
-
-                self.row(
-                    ui,
-                    "Total Fat",
-                    &fat_gr.qty_with_unit_per_serving(servings),
-                    &fat_percent.qty_with_unit_per_serving(servings),
-                    &[
-                        (
-                            "Saturated Fat",
-                            &fat_sat_gr.qty_with_unit_per_serving(servings),
-                            &fat_sat_percent.qty_with_unit_per_serving(servings),
-                        ),
-                        (
-                            "Trans Fat",
-                            &trans_fat_gr.qty_with_unit_per_serving(servings),
-                            "",
-                        ),
-                    ],
-                );
-
-                let cholesterol_gr = self
-                    .totalNutrients
-                    .get("CHOLE")
-                    .unwrap_or(&default_nutrient);
-                let cholesterol_percent = self.totalDaily.get("CHOLE").unwrap_or(&default_nutrient);
-                self.row(
-                    ui,
-                    "Cholesterol",
-                    &cholesterol_gr.qty_with_unit_per_serving(servings),
-                    &cholesterol_percent.qty_with_unit_per_serving(servings),
-                    &[],
-                );
-
-                let sodium_gr = self.totalNutrients.get("NA").unwrap_or(&default_nutrient);
-                let sodium_percent = self.totalDaily.get("NA").unwrap_or(&default_nutrient);
-                self.row(
-                    ui,
-                    "Sodium",
-                    &sodium_gr.qty_with_unit_per_serving(servings),
-                    &sodium_percent.qty_with_unit_per_serving(servings),
-                    &[],
-                );
-
-                let carbs_gr = self
-                    .totalNutrients
-                    .get("CHOCDF")
-                    .unwrap_or(&default_nutrient);
-                let carbs_percent = self.totalDaily.get("CHOCDF").unwrap_or(&default_nutrient);
-                let fiber_gr = self
-                    .totalNutrients
-                    .get("FIBTG")
-                    .unwrap_or(&default_nutrient);
-                let fiber_percent = self.totalDaily.get("FIBTG").unwrap_or(&default_nutrient);
-                let sugar_gr = self
-                    .totalNutrients
-                    .get("SUGAR")
-                    .unwrap_or(&default_nutrient);
-
-                self.row(
-                    ui,
-                    "Total Carbohydrate",
-                    &carbs_gr.qty_with_unit_per_serving(servings),
-                    &carbs_percent.qty_with_unit_per_serving(servings),
-                    &[
-                        (
-                            "Dietary Fiber",
-                            &fiber_gr.qty_with_unit_per_serving(servings),
-                            &fiber_percent.qty_with_unit_per_serving(servings),
-                        ),
-                        (
-                            "Total Sugars",
-                            &sugar_gr.qty_with_unit_per_serving(servings),
-                            "",
-                        ),
-                    ],
-                );
-
-                let protein_gr = self
-                    .totalNutrients
-                    .get("PROCNT")
-                    .unwrap_or(&default_nutrient);
-                let protein_percent = self.totalDaily.get("PROCNT").unwrap_or(&default_nutrient);
-                self.row(
-                    ui,
-                    "Protein",
-                    &protein_gr.qty_with_unit_per_serving(servings),
-                    &protein_percent.qty_with_unit_per_serving(servings),
-                    &[],
-                );
-            });
         });
     }
 

@@ -128,8 +128,12 @@ impl MealPlanner {
         }
     }
 
+    pub fn can_create_draft_recipe(&self) -> bool {
+        self.draft_recipe.is_none()
+    }
+
     pub fn create_draft_recipe(&mut self) -> Option<&mut Recipe> {
-        if self.draft_recipe.is_some() {
+        if !self.can_create_draft_recipe() {
             return None;
         }
         let recipe = Recipe::default();
