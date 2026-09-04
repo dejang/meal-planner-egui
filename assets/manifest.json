@@ -1,6 +1,6 @@
 {
-  "name": "egui Template PWA",
-  "short_name": "egui-template-pwa",
+  "name": "Meal Planner",
+  "short_name": "Meal Planner",
   "icons": [
     {
       "src": "./icon-256.png",

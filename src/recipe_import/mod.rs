@@ -31,20 +31,28 @@ impl ImportedRecipe {
 type Extractor = fn(&str) -> Result<ImportedRecipe, String>;
 
 struct ExtractorRegistration {
+    name: &'static str,
     domains: &'static [&'static str],
     extract: Extractor,
 }
 
 const EXTRACTORS: &[ExtractorRegistration] = &[
     ExtractorRegistration {
+        name: "Healthy Fitness Meals",
         domains: healthy_fitness_meals::DOMAINS,
         extract: extract_json_ld_recipe,
     },
     ExtractorRegistration {
+        name: "Spanish Sabores",
         domains: spanish_sabores::DOMAINS,
         extract: extract_json_ld_recipe,
     },
 ];
+
+/// Display the same websites and aliases that the URL dispatcher accepts.
+pub fn supported_sites() -> impl Iterator<Item = (&'static str, &'static [&'static str])> {
+    EXTRACTORS.iter().map(|site| (site.name, site.domains))
+}
 
 #[derive(Debug, Default)]
 enum ImportState {

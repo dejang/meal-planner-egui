@@ -24,6 +24,38 @@ pub static INTER_REGULAR: &[u8] = include_bytes!("./inter/Inter_24pt-Regular.ttf
 pub static INTER_SMALL: &[u8] = include_bytes!("./inter/Inter_18pt-Light.ttf");
 
 pub fn install_fonts(ctx: &egui::Context) {
+    // Bundled OFL fonts keep the recipe page consistent on native and web.
+    for (name, bytes) in [
+        (
+            "recipe_display",
+            include_bytes!("editorial/DMSerifDisplay-Regular.ttf").as_slice(),
+        ),
+        (
+            "recipe_text",
+            include_bytes!("editorial/DMSerifText-Regular.ttf").as_slice(),
+        ),
+        (
+            "recipe_italic",
+            include_bytes!("editorial/DMSerifText-Italic.ttf").as_slice(),
+        ),
+    ] {
+        ctx.add_font(FontInsert::new(
+            name,
+            FontData::from_static(bytes),
+            vec![InsertFontFamily {
+                family: egui::FontFamily::Name(Arc::from(name)),
+                priority: egui::epaint::text::FontPriority::Highest,
+            }],
+        ));
+    }
+    ctx.add_font(FontInsert::new(
+        "heading",
+        FontData::from_static(GEIST_SEMI_BOLD),
+        vec![InsertFontFamily {
+            family: egui::FontFamily::Name(Arc::from("heading")),
+            priority: egui::epaint::text::FontPriority::Highest,
+        }],
+    ));
     ctx.add_font(FontInsert::new(
         "my_font",
         FontData::from_static(GEIST_REGULAR),

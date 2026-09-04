@@ -6,8 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <head>
-    <!-- change this to your project name -->
-    <title>meal_planner</title>
+    <title>Meal Planner</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
     <link data-trunk rel="rust" data-wasm-opt="2" />
@@ -27,8 +26,7 @@
 
     <link rel="manifest" href="assets/manifest.json">
     <link rel="apple-touch-icon" href="assets/icon_ios_touch_192.png">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#404040">
+    <meta name="theme-color" content="#1b3f31">
 
     <style>
         html {
@@ -39,15 +37,7 @@
         body {
             /* Light mode background color for what is not covered by the egui canvas,
             or where the egui canvas is translucent. */
-            background: #909090;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                /* Dark mode background color for what is not covered by the egui canvas,
-                or where the egui canvas is translucent. */
-                background: #404040;
-            }
+            background: #f6f4eb;
         }
 
         /* Allow canvas to fill entire web page: */
@@ -80,9 +70,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #f0f0f0;
+            color: #1b3f31;
             font-size: 24px;
-            font-family: Ubuntu-Light, Helvetica, sans-serif;
+            font-family: Helvetica, sans-serif;
             text-align: center;
         }
 
@@ -101,8 +91,8 @@
             height: 24px;
             margin: 0px;
             border-radius: 50%;
-            border: 3px solid #fff;
-            border-color: #fff transparent #fff transparent;
+            border: 3px solid #d9dfce;
+            border-color: #30684c #d9dfce #d9dfce #d9dfce;
             animation: lds-dual-ring 1.2s linear infinite;
         }
 
@@ -115,6 +105,10 @@
                 transform: rotate(360deg);
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            .lds-dual-ring:after { animation: none; }
+        }
     </style>
 </head>
 
@@ -126,7 +120,7 @@
     <!-- the loading spinner will be removed in main.rs -->
     <div class="centered" id="loading_text">
         <p style="font-size:16px">
-            Loading…
+            Preparing your kitchen…
         </p>
         <div class="lds-dual-ring"></div>
     </div>

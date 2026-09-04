@@ -1,6 +1,5 @@
 use egui::{
-    vec2, Color32, CornerRadius, Frame, Id, Image, Layout, Margin, Pos2, RichText, ScrollArea,
-    Sense, Shadow, Stroke, TextEdit, Widget,
+    vec2, Id, Image, Layout, Margin, Pos2, RichText, ScrollArea, Sense, Stroke, TextEdit, Widget,
 };
 use uuid::Uuid;
 
@@ -9,6 +8,8 @@ use crate::{
     models::{AnalysisResponseView, Recipe},
     planner::Location,
     recipe_title,
+    theme::{palette, paper_window_frame, surface_frame},
+    typography::icons::{ICON_CHEF_HAT, ICON_SEARCH},
     util::{hb, percentage},
 };
 
@@ -60,7 +61,7 @@ impl GalleryItemDragPreview {
                     ui.set_width(100.);
                     ui.set_height(100.);
 
-                    let frame = Frame::default().fill(ui.visuals().panel_fill);
+                    let frame = surface_frame().inner_margin(6);
                     frame.show(ui, |ui| {
                         if let Some(image) = &image {
                             ui.add(image.to_owned());
@@ -93,69 +94,136 @@ impl<'a> Widget for GalleryItem<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let (width, height) = &self.size;
         let height = percentage(*height, 90);
-        let mut frame = egui::Frame::new()
-            .fill(ui.visuals().extreme_bg_color)
-            .shadow(Shadow {
-                offset: [0, 0],
-                blur: 10,
-                spread: 10,
-                color: Color32::from_gray(240),
-            })
+        let frame = surface_frame()
             .inner_margin(Margin::same(10))
             .outer_margin(Margin::same(10));
 
-        if self.selected {
-            frame = frame.stroke(Stroke::new(1.0, ui.visuals().window_stroke.color));
-        }
-        let response = frame
-            .show(ui, |ui| {
-                // ui.set_height(height);
-                ui.set_width(*width);
-                ui.set_height(height);
-                let response = ui.interact(
-                    ui.max_rect(),
-                    Id::new(&self.recipe.title),
-                    Sense::click_and_drag(),
-                );
+        let card = frame.show(ui, |ui| {
+            ui.style_mut().interaction.selectable_labels = false;
+            ui.set_width(*width);
+            ui.set_height(height);
+            let response = ui.interact(
+                ui.max_rect(),
+                Id::new(("recipe_card", self.recipe.id)),
+                Sense::click_and_drag(),
+            );
 
-                ui.vertical_centered_justified(|ui| {
-                    ui.scope(|ui| {
-                        ui.label(RichText::new(&self.recipe.title).text_style(recipe_title()));
-                    });
-                    ui.scope(|ui| {
-                        let image = Image::new(&self.recipe.image_url)
-                            .corner_radius(CornerRadius::same(10))
-                            .max_height(percentage(height, 65))
-                            .maintain_aspect_ratio(true);
-
-                        ui.add(image);
-                    });
-
-                    ui.add_space(10.);
-
-                    let layout = Layout::bottom_up(egui::Align::Min);
-                    ui.with_layout(layout, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(hb(&format!(
-                                "Calories: {}",
-                                self.recipe.macros.calories / (self.recipe.servings as i32)
-                            )));
-
-                            let layout = Layout::right_to_left(egui::Align::Center);
-                            ui.with_layout(layout, |ui| {
-                                ui.label(hb(&format!("Servings: {}", self.recipe.servings)));
-                            });
-                        });
-                        ui.separator();
-                    });
-
-                    // ui.add(Alergens::new(self.recipe));
+            ui.vertical_centered_justified(|ui| {
+                ui.scope(|ui| {
+                    let title_font = recipe_title().resolve(ui.style());
+                    let title_height = ui.fonts_mut(|fonts| fonts.row_height(&title_font)) * 2.0;
+                    let mut title = egui::text::LayoutJob::simple(
+                        self.recipe.title.clone(),
+                        title_font,
+                        palette::FOREST,
+                        *width,
+                    );
+                    title.wrap.max_rows = 2;
+                    title.halign = egui::Align::Center;
+                    let title = ui.fonts_mut(|fonts| fonts.layout_job(title));
+                    ui.add_sized(
+                        vec2(*width, title_height),
+                        egui::Label::new(title).selectable(false),
+                    );
                 });
-                response
-            })
-            .inner;
+                ui.scope(|ui| {
+                    let photo_height =
+                        percentage(height, 65).min((ui.available_height() - 48.0).max(32.0));
+                    recipe_photo(ui, self.recipe, vec2(*width, photo_height));
+                });
 
+                ui.add_space(10.);
+
+                let layout = Layout::bottom_up(egui::Align::Min);
+                ui.with_layout(layout, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            hb(&format!(
+                                "{} kcal",
+                                self.recipe.macros.calories / (self.recipe.servings as i32)
+                            ))
+                            .strong()
+                            .color(palette::FOREST),
+                        );
+
+                        let layout = Layout::right_to_left(egui::Align::Center);
+                        ui.with_layout(layout, |ui| {
+                            ui.label(
+                                hb(&format!("{} servings", self.recipe.servings))
+                                    .color(palette::MUTED),
+                            );
+                        });
+                    });
+                    ui.separator();
+                });
+            });
+            response
+        });
+
+        let response = card.inner.on_hover_cursor(egui::CursorIcon::Grab);
+        let hover =
+            ui.ctx()
+                .animate_bool_with_time(response.id.with("hover"), response.hovered(), 0.16);
+        let border = if self.selected {
+            palette::GREEN
+        } else {
+            palette::BORDER.lerp_to_gamma(palette::GREEN, hover)
+        };
+        ui.painter().rect_stroke(
+            card.response.rect.shrink(10.0),
+            16,
+            Stroke::new(if self.selected { 2.0 } else { 1.0 }, border),
+            egui::StrokeKind::Inside,
+        );
         response
+    }
+}
+
+/// Fill the existing photo area without stretching the source image. A quiet
+/// illustrated placeholder also keeps cards stable while remote photos load.
+pub(crate) fn recipe_photo(ui: &mut egui::Ui, recipe: &Recipe, size: egui::Vec2) {
+    let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+    if !ui.is_rect_visible(rect) {
+        return;
+    }
+    let image = Image::new(&recipe.image_url);
+    let texture = if recipe.image_url.is_empty() {
+        None
+    } else {
+        image.load_for_size(ui.ctx(), size).ok()
+    };
+    if let Some(egui::load::TexturePoll::Ready { texture }) = texture {
+        let source_aspect = texture.size.x / texture.size.y;
+        let target_aspect = size.x / size.y;
+        let uv_size = if source_aspect > target_aspect {
+            vec2(target_aspect / source_aspect, 1.0)
+        } else {
+            vec2(1.0, source_aspect / target_aspect)
+        };
+        Image::from_texture(texture)
+            .uv(egui::Rect::from_center_size(egui::pos2(0.5, 0.5), uv_size))
+            .corner_radius(10)
+            .paint_at(ui, rect);
+    } else {
+        let painter = ui.painter_at(rect);
+        painter.rect_filled(rect, 10, palette::SAGE);
+        let center = rect.center() - vec2(0.0, 12.0);
+        painter.circle_stroke(center, 42.0, Stroke::new(1.0, palette::BORDER));
+        painter.circle_stroke(center, 34.0, Stroke::new(1.0, palette::BORDER));
+        painter.text(
+            center,
+            egui::Align2::CENTER_CENTER,
+            ICON_CHEF_HAT,
+            egui::FontId::new(32.0, egui::FontFamily::Name("icons".into())),
+            palette::GREEN,
+        );
+        painter.text(
+            center + vec2(0.0, 58.0),
+            egui::Align2::CENTER_CENTER,
+            "A little kitchen inspiration",
+            egui::TextStyle::Small.resolve(ui.style()),
+            palette::MUTED,
+        );
     }
 }
 
@@ -174,16 +242,7 @@ impl RecipeGallery {
         let window_width = 500.;
         let mut edit_clicked = false;
 
-        let frame = Frame::default()
-            .fill(ui.visuals().panel_fill)
-            .corner_radius(CornerRadius::same(10))
-            .shadow(Shadow {
-                offset: [-2, 0],
-                blur: 20,
-                spread: 5,
-                color: Color32::from_gray(200),
-            })
-            .inner_margin(Margin::same(10));
+        let frame = paper_window_frame(ui.style());
 
         egui::Window::new("Recipe")
             .title_bar(false)
@@ -273,12 +332,18 @@ impl RecipeGallery {
             ui.vertical(|ui| {
                 // search area
                 ui.scope(|ui| {
-                    ui.set_height(24.);
+                    ui.set_height(38.);
                     ui.set_width(ui.available_width());
                     ui.centered_and_justified(|ui| {
                         ui.add(
                             TextEdit::singleline(&mut self.search_query)
-                                .hint_text("Search recipes..."),
+                                .hint_text(
+                                    RichText::new(format!(
+                                        "{ICON_SEARCH}   Find something delicious…"
+                                    ))
+                                    .color(palette::MUTED),
+                                )
+                                .margin(egui::Margin::symmetric(16, 9)),
                         );
                     });
                 });
